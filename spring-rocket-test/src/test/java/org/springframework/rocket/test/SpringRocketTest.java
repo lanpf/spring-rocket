@@ -27,7 +27,8 @@ import java.util.stream.IntStream;
 @SpringBootTest(classes = SpringRocketApplication.class, properties = {
         "rocket.properties.traceEnabled=true",
         "rocket.name-server=127.0.0.1:9876",
-        "rocket.producer.group_id=GID_SAMPLES_MESSAGE"
+        "rocket.producer.group_id=GID_SAMPLES_MESSAGE",
+        "rocket.consumer.push.message-model=CLUSTERING"
 })
 public class SpringRocketTest {
 
@@ -36,15 +37,22 @@ public class SpringRocketTest {
 
     @SneakyThrows
     @Test
+    public void consumerTest() {
+        Thread.sleep(5000);
+    }
+
+    @SneakyThrows
+    @Test
     public void sendTest() {
         String topic = "rocket-send-simple";
 
         SendResult sendResult;
+
         sendResult = rocketTemplate.send(topic, PayloadSend.create());
         log.info("sync send simple: {}", sendResult);
+
         sendResult = rocketTemplate.send(new TopicTag(topic, "1"), PayloadSend.create());
         log.info("sync send simple with tags: {}", sendResult);
-
 
         Map<String, Object> headers = MapBuilder.builder()
                 .put(RocketHeaders.KEYS, "keys-rocket-send-simple")
@@ -65,6 +73,7 @@ public class SpringRocketTest {
         String topic = "rocket-send-batch";
 
         SendResult sendResult;
+
         List<PayloadSend> payloads = IntStream.range(0, 20).boxed().map(i -> PayloadSend.create()).toList();
         sendResult = rocketTemplate.sendBatch(TopicTag.of(topic), payloads);
         log.info("sync send batch simple: {}", sendResult);
