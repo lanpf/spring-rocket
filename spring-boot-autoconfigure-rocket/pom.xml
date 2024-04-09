@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.springframework.rocket</groupId>
-    <artifactId>spring-rocket</artifactId>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-autoconfigure-rocket</artifactId>
     <version>1.0.0</version>
 
     <properties>
@@ -14,8 +14,8 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <spring.version>6.0.14</spring.version>
-        <rocketmq.version>5.2.0</rocketmq.version>
+        <spring-boot.version>3.0.13</spring-boot.version>
+        <spring-rocket.version>1.0.0</spring-rocket.version>
     </properties>
 
     <dependencies>
@@ -26,29 +26,15 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-core</artifactId>
-            <version>${spring.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <version>${spring-boot.version}</version>
         </dependency>
+
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
-            <version>${spring.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-messaging</artifactId>
-            <version>${spring.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-client</artifactId>
-            <version>${rocketmq.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-acl</artifactId>
-            <version>${rocketmq.version}</version>
+            <groupId>org.springframework.rocket</groupId>
+            <artifactId>spring-rocket</artifactId>
+            <version>${spring-rocket.version}</version>
         </dependency>
     </dependencies>
 
@@ -57,7 +43,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>3.0.13</version>
+                <version>${spring-boot.version}</version>
                 <configuration>
                     <excludes>
                         <exclude>
@@ -69,4 +55,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

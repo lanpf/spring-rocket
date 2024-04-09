@@ -4,10 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import org.apache.rocketmq.client.producer.MQProducer;
-import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.client.producer.selector.SelectMessageQueueByHash;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -37,7 +35,6 @@ public class RocketTemplate implements RocketOperations,
         ApplicationContextAware, SmartInitializingSingleton, InitializingBean, DisposableBean {
 
     protected MessagingMessageConverter messageConverter = new DefaultMessagingMessageConverter();
-    protected MessageQueueSelector messageQueueSelector = new SelectMessageQueueByHash();
 
     private final RocketProducerFactory producerFactory;
     private MQProducer producer;

@@ -25,7 +25,7 @@ It is functionally similar to the following projects:
 - [ ] consuming with pull mode
 - [ ] message filtering
 - [ ] message tracing
-- [ ] authentication and authorization support
+- [x] authentication and authorization support
 
 ## Requirements
 
