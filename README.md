@@ -20,7 +20,8 @@ It is functionally similar to the following projects:
 - [ ] send and receive (request-reply)
 - [ ] concurrent consuming
 - [ ] sequential consuming
-- [ ] consuming with pull/push mode
+- [ ] consuming with push mode
+- [ ] consuming with pull mode
 - [ ] message filtering
 - [ ] message tracing
 - [ ] authentication and authorization support
