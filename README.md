@@ -10,21 +10,22 @@ It is functionally similar to the following projects:
 
 ## Features
 
-- [ ] synchronous sending
-- [ ] asynchronous sending
-- [ ] batch sending
+- [x] synchronous sending
+- [x] asynchronous sending
 - [ ] sequential sending
+- [x] batch sending
 - [ ] delay sending
 - [ ] send in one-way mode
 - [ ] send in transaction
 - [ ] send and receive (request-reply)
 - [ ] concurrent consuming
 - [ ] sequential consuming
+- [ ] batch consuming
 - [ ] consuming with push mode
 - [ ] consuming with pull mode
 - [ ] message filtering
 - [ ] message tracing
-- [ ] authentication and authorization support
+- [x] authentication and authorization support
 
 ## Requirements
 
