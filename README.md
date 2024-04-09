@@ -18,13 +18,13 @@ It is functionally similar to the following projects:
 - [ ] send in one-way mode
 - [ ] send in transaction
 - [ ] send and receive (request-reply)
-- [ ] concurrent consuming
+- [x] concurrent consuming
 - [ ] sequential consuming
-- [ ] batch consuming
-- [ ] consuming with push mode
+- [x] batch consuming
+- [x] consuming with push mode
 - [ ] consuming with pull mode
-- [ ] message filtering
-- [ ] message tracing
+- [x] message filtering
+- [x] message tracing
 - [x] authentication and authorization support
 
 ## Requirements
