@@ -1,2 +1,79 @@
 # spring-rocket
-The Spring for Apache RocketMQ (spring-rocket) project applies core Spring concepts to the development of rocketMQ-based messaging solutions. It provides a "template" as a high-level abstraction for sending messages. It also provides support for Message-driven POJOs with @RocketListener annotations and a "listener container".
+
+The Spring for [Apache RocketMQ](http://rocketmq.apache.org/) (spring-rocket) project applies core Spring concepts to the development of rocketMQ-based messaging solutions. It provides a "template" as a high-level abstraction for sending messages. It also provides support for Message-driven POJOs with @RocketListener annotations and a "listener container".
+
+It is functionally similar to the following projects:
+
+- Spring for Apache Kafka
+- Spring for Apache Pulsar
+- Spring AMQP
+
+## Features
+
+- [ ] synchronous sending
+- [ ] asynchronous sending
+- [ ] batch sending
+- [ ] sequential sending
+- [ ] delay sending
+- [ ] send in one-way mode
+- [ ] send in transaction
+- [ ] send and receive (request-reply)
+- [ ] concurrent consuming
+- [ ] sequential consuming
+- [ ] consuming with pull/push mode
+- [ ] message filtering
+- [ ] message tracing
+- [ ] authentication and authorization support
+
+## Requirements
+
+* Maven 3.0 and above
+* Rocket Client 4.9 and above
+* JDK 17 and above
+* Spring 6.0 and above
+
+## Modules
+
+There are several modules in Spring for Apache RocketMQ. Here is a quick overview:
+
+### spring-boot-autoconfigure-rocket
+
+Aims to integrate Apache RocketMQ with [Spring Boot](http://projects.spring.io/spring-boot/).
+
+### spring-rocket
+
+The main library that provides the API to access Apache RocketMQ.
+
+### spring-rocket-test
+
+Provides utilities to help with testing Spring for Apache RocketMQ applications.
+
+## Usage
+
+Add a dependency using maven:
+
+* Spring:
+
+```xml
+<!--add dependency in pom.xml-->
+<dependency>
+    <groupId>org.springframework.rocket</groupId>
+    <artifactId>spring-rocket</artifactId>
+    <version>${RELEASE.VERSION}</version>
+</dependency>
+```
+
+* Spring Boot:
+
+```xml
+<!--add dependency in pom.xml-->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-autoconfigure-rocket</artifactId>
+    <version>${RELEASE.VERSION}</version>
+</dependency>
+```
+
+## License
+
+Spring for Apache RocketMQ is Open Source software released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
