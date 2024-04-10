@@ -1,5 +1,6 @@
 package org.springframework.boot.autoconfigure.rocket;
 
+import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -25,9 +26,11 @@ public class RocketAutoConfiguration {
     @ConditionalOnMissingBean(name = RocketSupportBeanNames.DEFAULT_ROCKET_TEMPLATE_BEAN_NAME)
     public RocketTemplate rocketTemplate(
             RocketProducerFactory producerFactory,
-            ObjectProvider<MessagingMessageConverter> messageConverter) {
+            ObjectProvider<MessagingMessageConverter> messageConverter,
+            ObjectProvider<MessageQueueSelector> messageQueueSelector) {
         RocketTemplate rocketTemplate = new RocketTemplate(producerFactory);
         messageConverter.ifAvailable(rocketTemplate::setMessageConverter);
+        messageQueueSelector.ifAvailable(rocketTemplate::setMessageQueueSelector);
         return rocketTemplate;
     }
 

@@ -12,14 +12,14 @@ It is functionally similar to the following projects:
 
 - [x] synchronous sending
 - [x] asynchronous sending
-- [ ] sequential sending
+- [x] sequential sending
 - [x] batch sending
-- [ ] delay sending
+- [x] delay sending
 - [ ] send in one-way mode
 - [ ] send in transaction
 - [ ] send and receive (request-reply)
 - [x] concurrent consuming
-- [ ] sequential consuming
+- [x] sequential consuming
 - [x] batch consuming
 - [x] consuming with push mode
 - [ ] consuming with pull mode
