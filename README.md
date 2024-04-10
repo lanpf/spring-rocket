@@ -50,6 +50,10 @@ The main library that provides the API to access Apache RocketMQ.
 
 Provides utilities to help with testing Spring for Apache RocketMQ applications.
 
+## Test
+
+Build `spring-rocket` first, then build `spring-boot-autoconfigure-rocket`, and then you can run `spring-rocket-test`
+
 ## Usage
 
 Add a dependency using maven:
