@@ -1,5 +1,6 @@
 package org.springframework.rocket.test;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ import org.springframework.rocket.core.RocketTemplate;
 import org.springframework.rocket.core.TopicTag;
 import org.springframework.rocket.support.RocketHeaders;
 import org.springframework.rocket.test.dto.PayloadSend;
+import org.springframework.rocket.test.dto.Result;
 import org.springframework.rocket.test.util.MapBuilder;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.util.ObjectUtils;
@@ -260,6 +262,7 @@ public class SpringRocketTest {
         String topic = "rocket-send-transaction";
 
         TransactionSendResult sendResult;
+
         sendResult = rocketTemplate.sendInTransaction(topic, PayloadSend.create(), randomTransactionArg());
         log.info("send in transaction: {}", sendResult);
 
@@ -329,6 +332,169 @@ public class SpringRocketTest {
         Thread.sleep(10000);
     }
 
+
+    @SneakyThrows
+    @Test
+    public void sendAndReceiveTest() {
+        String topic = "rocket-send-receive";
+
+        PayloadSend receiveResult;
+
+        receiveResult = rocketTemplate.sendAndReceive(topic, PayloadSend.create(), PayloadSend.class);
+        log.info("sync send and receive: {}", receiveResult);
+
+        receiveResult = rocketTemplate.sendAndReceive(new TopicTag(topic, "1"), PayloadSend.create(), PayloadSend.class);
+        log.info("sync send and receive with tags: {}", receiveResult);
+
+        IntStream.range(0, 5).boxed().forEach(i -> {
+            PayloadSend result = rocketTemplate.sendAndReceive(TopicTag.of(topic), PayloadSend.create(), "sharding-rocket-send-simple", null, PayloadSend.class);
+            log.info("sync send and receive with sharding key: {}", result);
+        });
+
+
+        Map<String, Object> headers = MapBuilder.builder()
+                .put(RocketHeaders.KEYS, "keys-rocket-send-receive")
+                .build();
+        receiveResult = rocketTemplate.sendAndReceive(topic, PayloadSend.create(), () -> headers, PayloadSend.class);
+        log.info("sync send and receive with header: {}", receiveResult);
+
+        receiveResult = rocketTemplate.sendAndReceive(topic, MessageBuilder.createMessage(PayloadSend.create(), new MessageHeaders(headers)), PayloadSend.class);
+        log.info("sync send and receive messaging: {}", receiveResult);
+
+        Thread.sleep(5000);
+    }
+
+    @SneakyThrows
+    @Test
+    public void sendAndReceiveMessagingTest() {
+        String topic = "rocket-send-receive-messaging";
+
+        PayloadSend receiveResult;
+
+        receiveResult = rocketTemplate.sendAndReceive(topic, PayloadSend.create(), PayloadSend.class);
+        log.info("sync send and receive messaging: {}", receiveResult);
+
+        receiveResult = rocketTemplate.sendAndReceive(new TopicTag(topic, "1"), PayloadSend.create(), PayloadSend.class);
+        log.info("sync send and receive messaging with tags: {}", receiveResult);
+
+        IntStream.range(0, 5).boxed().forEach(i -> {
+            PayloadSend result = rocketTemplate.sendAndReceive(TopicTag.of(topic), PayloadSend.create(), "sharding-rocket-send-simple", null, PayloadSend.class);
+            log.info("sync send and receive messaging with sharding key: {}", result);
+        });
+
+
+        Map<String, Object> headers = MapBuilder.builder()
+                .put(RocketHeaders.KEYS, "keys-rocket-send-receive-messaging")
+                .build();
+        receiveResult = rocketTemplate.sendAndReceive(topic, PayloadSend.create(), () -> headers, PayloadSend.class);
+        log.info("sync send and receive messaging with header: {}", receiveResult);
+
+        receiveResult = rocketTemplate.sendAndReceive(topic, MessageBuilder.createMessage(PayloadSend.create(), new MessageHeaders(headers)), PayloadSend.class);
+        log.info("sync send and receive messaging messaging: {}", receiveResult);
+
+        Thread.sleep(5000);
+    }
+
+    @SneakyThrows
+    @Test
+    public void sendAndReceiveGenericTest() {
+        String topic = "rocket-send-receive-generic";
+
+        Result<PayloadSend> receiveGeneric = rocketTemplate.sendAndReceive(topic, PayloadSend.create(), new TypeReference<Result<PayloadSend>>() {
+        }.getType());
+        log.info("sync send and receive generic: {}", receiveGeneric);
+
+        Thread.sleep(5000);
+    }
+
+    @SneakyThrows
+    @Test
+    public void sendAndReceiveAsyncTest() {
+        String topic = "rocket-send-receive";
+
+        Function<String, BiConsumer<PayloadSend, Throwable>> sendAndReceiveConsumer = prefix -> (receiveResult, e) -> {
+            if (e == null) {
+                log.info(prefix + " success, result: {}", receiveResult);
+            } else {
+                log.error(prefix + " fail", e);
+            }
+        };
+
+        rocketTemplate.sendAndReceiveAsync(topic, PayloadSend.create(), PayloadSend.class,
+                sendAndReceiveConsumer.apply("async send and receive"));
+
+        rocketTemplate.sendAndReceiveAsync(new TopicTag(topic, "1"), PayloadSend.create(), PayloadSend.class,
+                sendAndReceiveConsumer.apply("async send and receive with tags"));
+
+        IntStream.range(0, 5).boxed().forEach(i ->
+                rocketTemplate.sendAndReceiveAsync(TopicTag.of(topic), PayloadSend.create(), "sharding-rocket-send-receive", null, PayloadSend.class,
+                        sendAndReceiveConsumer.apply("async send and receive with sharding key")));
+
+        Map<String, Object> headers = MapBuilder.builder()
+                .put(RocketHeaders.KEYS, "keys-rocket-send-receive")
+                .build();
+        rocketTemplate.sendAndReceiveAsync(topic, PayloadSend.create(), () -> headers, PayloadSend.class,
+                sendAndReceiveConsumer.apply("async send and receive with header"));
+
+        rocketTemplate.sendAndReceiveAsync(topic, MessageBuilder.createMessage(PayloadSend.create(), new MessageHeaders(headers)), PayloadSend.class,
+                sendAndReceiveConsumer.apply("async send and receive messaging"));
+
+        Thread.sleep(5000);
+    }
+
+    @SneakyThrows
+    @Test
+    public void sendAndReceiveAsyncMessagingTest() {
+        String topic = "rocket-send-receive-messaging";
+
+        Function<String, BiConsumer<PayloadSend, Throwable>> sendAndReceiveConsumer = prefix -> (receiveResult, e) -> {
+            if (e == null) {
+                log.info(prefix + " success, result: {}", receiveResult);
+            } else {
+                log.error(prefix + " fail", e);
+            }
+        };
+
+        rocketTemplate.sendAndReceiveAsync(topic, PayloadSend.create(), PayloadSend.class,
+                sendAndReceiveConsumer.apply("async send and receive messaging"));
+
+        rocketTemplate.sendAndReceiveAsync(new TopicTag(topic, "1"), PayloadSend.create(), PayloadSend.class,
+                sendAndReceiveConsumer.apply("async send and receive messaging with tags"));
+
+        IntStream.range(0, 5).boxed().forEach(i ->
+                rocketTemplate.sendAndReceiveAsync(TopicTag.of(topic), PayloadSend.create(), "sharding-rocket-send-receive-messaging", null, PayloadSend.class,
+                        sendAndReceiveConsumer.apply("async send and receive messaging with sharding key")));
+
+        Map<String, Object> headers = MapBuilder.builder()
+                .put(RocketHeaders.KEYS, "rocket-send-receive-messaging")
+                .build();
+        rocketTemplate.sendAndReceiveAsync(topic, PayloadSend.create(), () -> headers, PayloadSend.class,
+                sendAndReceiveConsumer.apply("async send and receive messaging with header"));
+
+        rocketTemplate.sendAndReceiveAsync(topic, MessageBuilder.createMessage(PayloadSend.create(), new MessageHeaders(headers)), PayloadSend.class,
+                sendAndReceiveConsumer.apply("async send and receive messaging messaging"));
+
+        Thread.sleep(5000);
+    }
+
+    @SneakyThrows
+    @Test
+    public void sendAndReceiveAsyncGenericTest() {
+        String topic = "rocket-send-receive-generic";
+
+        Function<String, BiConsumer<Result<PayloadSend>, Throwable>> sendAndReceiveConsumer = prefix -> (receiveResult, e) -> {
+            if (e == null) {
+                log.info(prefix + " success, result: {}", receiveResult);
+            } else {
+                log.error(prefix + " fail", e);
+            }
+        };
+
+        rocketTemplate.sendAndReceiveAsync(topic, PayloadSend.create(), new TypeReference<Result<PayloadSend>>() {
+        }.getType(), sendAndReceiveConsumer.apply("async send and receive generic"));
+
+        Thread.sleep(5000);
+    }
 
     @SneakyThrows
     @Test
