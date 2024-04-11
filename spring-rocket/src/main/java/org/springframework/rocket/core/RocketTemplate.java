@@ -3,6 +3,7 @@ package org.springframework.rocket.core;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.SneakyThrows;
+import org.apache.rocketmq.client.consumer.LitePullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.MQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
@@ -11,6 +12,7 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.client.producer.TransactionSendResult;
 import org.apache.rocketmq.client.producer.selector.SelectMessageQueueByHash;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
@@ -20,8 +22,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.rocket.RocketException;
 import org.springframework.rocket.client.ProducerProperties;
 import org.springframework.rocket.client.RocketProducerFactory;
+import org.springframework.rocket.client.RocketPullConsumerFactory;
 import org.springframework.rocket.support.RocketHeaderUtils;
 import org.springframework.rocket.support.RocketHeaders;
 import org.springframework.rocket.support.RocketTransactionUtils;
@@ -31,7 +35,9 @@ import org.springframework.rocket.transaction.RocketTransactionListener;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +49,7 @@ import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Setter
-public class RocketTemplate implements RocketOperations, RocketTransactionOperations,
+public class RocketTemplate implements RocketOperations, RocketTransactionOperations, RocketReceivingOperations,
         ApplicationContextAware, SmartInitializingSingleton, InitializingBean, DisposableBean {
 
     protected MessagingMessageConverter messageConverter = new DefaultMessagingMessageConverter();
@@ -55,6 +61,10 @@ public class RocketTemplate implements RocketOperations, RocketTransactionOperat
 
     private final Map<String, MQProducer> transactionalProducers = new ConcurrentHashMap<>();
     private ExecutorService transactionExecutor;
+
+    private RocketPullConsumerFactory pullConsumerFactory;
+    private final Map<String, LitePullConsumer> pullConsumers = new ConcurrentHashMap<>();
+    private Long pollTimeoutMillis = DEFAULT_POLL_TIMEOUT_MILLIS;
 
     /**
      *  Whether to record observations
@@ -72,6 +82,15 @@ public class RocketTemplate implements RocketOperations, RocketTransactionOperat
 
     private long getSendTimeoutMillis(Long timeoutMillis) {
         return timeoutMillis != null && timeoutMillis > 0 ? timeoutMillis : this.sendTimeoutMillis;
+    }
+
+    public void setPollTimeoutMillis(Long pollTimeoutMillis) {
+        Assert.isTrue(pollTimeoutMillis != null && pollTimeoutMillis > 0, "poll timeout must be positive number");
+        this.pollTimeoutMillis = pollTimeoutMillis;
+    }
+
+    private long getPollTimeoutMillis(Long timeoutMillis) {
+        return timeoutMillis != null && timeoutMillis > 0 ? timeoutMillis : this.pollTimeoutMillis;
     }
 
     @Override
@@ -104,6 +123,10 @@ public class RocketTemplate implements RocketOperations, RocketTransactionOperat
             this.transactionalProducers.values().forEach(MQProducer::shutdown);
             this.transactionalProducers.clear();
         }
+        if (!ObjectUtils.isEmpty(this.pullConsumers)) {
+            this.pullConsumers.values().forEach(LitePullConsumer::shutdown);
+            this.pullConsumers.clear();
+        }
     }
 
     @Override
@@ -117,6 +140,11 @@ public class RocketTemplate implements RocketOperations, RocketTransactionOperat
     protected final ExecutorService getRequiredTransactionExecutor() {
         Assert.state(this.transactionExecutor != null, "No 'transactionExecutor' set");
         return this.transactionExecutor;
+    }
+
+    protected final RocketPullConsumerFactory getRequiredPullConsumerFactory() {
+        Assert.state(this.pullConsumerFactory != null, "No 'pullConsumerFactory' set");
+        return this.pullConsumerFactory;
     }
 
     /**
@@ -371,12 +399,80 @@ public class RocketTemplate implements RocketOperations, RocketTransactionOperat
                 try {
                     transactionProducer.start();
                 } catch (MQClientException e) {
-                    throw new RuntimeException(e);
+                    throw new RocketException(e.getErrorMessage(), e);
                 }
             }
 
             return producer;
         });
+    }
+    /**
+     * --------------------    receive    --------------------
+     */
+    @Override
+    public List<MessageExt> receive(String topic, Long timeoutMillis) {
+        return receive(new TopicTag(topic, null), timeoutMillis);
+    }
+    public List<MessageExt> receive(TopicTag topicTag) {
+        return receive(topicTag, null);
+    }
+    public List<MessageExt> receive(TopicTag topicTag, Long timeoutMillis) {
+        LitePullConsumer consumer = doSubscribe(topicTag);
+        return consumer.poll(getPollTimeoutMillis(timeoutMillis));
+    }
+    @Override
+    public void receiveAsync(String topic, Long timeoutMillis, BiConsumer<List<MessageExt>, Throwable> receiveConsumer) {
+        receiveAsync(new TopicTag(topic, null), timeoutMillis, receiveConsumer);
+    }
+    public void receiveAsync(TopicTag topicTag, BiConsumer<List<MessageExt>, Throwable> receiveConsumer) {
+        receiveAsync(topicTag, null, receiveConsumer);
+    }
+    public void receiveAsync(TopicTag topicTag, Long timeoutMillis, BiConsumer<List<MessageExt>, Throwable> receiveConsumer) {
+        throw new UnsupportedOperationException("RocketTemplate doesn't support receiveAsync");
+    }
+    @Override
+    public <T> List<T> receiveAndConvert(String topic, Type payloadType, Long timeoutMillis) {
+        return receiveAndConvert(new TopicTag(topic, null), payloadType, timeoutMillis);
+    }
+    public <T> List<T> receiveAndConvert(TopicTag topicTag, Type payloadType) {
+        return receiveAndConvert(topicTag, payloadType, null);
+    }
+    public <T> List<T> receiveAndConvert(TopicTag topicTag, Type payloadType, Long timeoutMillis) {
+        List<MessageExt> rocketMessages = receive(topicTag, timeoutMillis);
+        return convert(rocketMessages, payloadType);
+    }
+    @Override
+    public <T> void receiveAndConvertAsync(String topic, Type payloadType, Long timeoutMillis, BiConsumer<List<T>, Throwable> receiveConsumer) {
+        receiveAndConvertAsync(new TopicTag(topic, null), payloadType, timeoutMillis, receiveConsumer);
+    }
+    public <T> void receiveAndConvertAsync(TopicTag topicTag, Type payloadType, BiConsumer<List<T>, Throwable> receiveConsumer) {
+        receiveAndConvertAsync(topicTag, payloadType, null, receiveConsumer);
+    }
+    public <T> void receiveAndConvertAsync(TopicTag topicTag, Type payloadType, Long timeoutMillis, BiConsumer<List<T>, Throwable> receiveConsumer) {
+        receiveAsync(topicTag, timeoutMillis, (messageViews, throwable) -> receiveConsumer.accept(convert(messageViews, payloadType), throwable));
+    }
+
+    public void subscribe(TopicTag... topicTags) {
+        Arrays.stream(topicTags).forEach(this::doSubscribe);
+    }
+    private LitePullConsumer doSubscribe(TopicTag topicTag) {
+        return this.pullConsumers.computeIfAbsent(topicTag.toString(), key -> {
+            LitePullConsumer consumer = getRequiredPullConsumerFactory().create();
+            try {
+                consumer.subscribe(topicTag.topic(), topicTag.tag());
+                consumer.start();
+            } catch (MQClientException e) {
+                throw new RocketException(e.getErrorMessage(), e);
+            }
+            return consumer;
+        });
+    }
+    @SuppressWarnings("unchecked")
+    private <T> List<T> convert(List<MessageExt> messages, Type type) {
+        if (ObjectUtils.isEmpty(messages)) {
+            return new ArrayList<>();
+        }
+        return messages.stream().map(rocketMessage -> (T) this.messageConverter.toMessage(rocketMessage, type).getPayload()).toList();
     }
 
     private Message<?> buildMessage(Object payload, Supplier<Map<String, Object>> headerSupplier) {

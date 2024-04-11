@@ -5,6 +5,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.TransactionSendResult;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.messaging.Message;
@@ -18,9 +19,12 @@ import org.springframework.rocket.support.RocketHeaders;
 import org.springframework.rocket.test.dto.PayloadSend;
 import org.springframework.rocket.test.util.MapBuilder;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import org.springframework.util.ObjectUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -31,7 +35,11 @@ import java.util.stream.IntStream;
         "rocket.properties.traceEnabled=true",
         "rocket.name-server=127.0.0.1:9876",
         "rocket.producer.group_id=GID_SAMPLES_MESSAGE",
-        "rocket.consumer.push.message-model=CLUSTERING"
+        "rocket.consumer.push.message-model=CLUSTERING",
+        "rocket.consumer.push.pull-batch-size=32",
+        "rocket.consumer.pull.group_id=GID_SAMPLES_MESSAGE_POLLER",
+        "rocket.consumer.pull.message-model=CLUSTERING",
+        "rocket.consumer.pull.pull-batch-size=15"
 })
 public class SpringRocketTest {
 
@@ -274,6 +282,51 @@ public class SpringRocketTest {
 
     private Object randomTransactionArg() {
         return ((int) (Math.random() * 100)) % 2 == 0;
+    }
+
+    @SneakyThrows
+    @Test
+    public void receiveTest() {
+        String topic = "rocket-receive";
+
+        List<PayloadSend> payloads = IntStream.range(0, 100).boxed().map(i -> PayloadSend.create()).toList();
+        SendResult sendResult = rocketTemplate.sendBatch(TopicTag.of(topic), payloads);
+        log.info("sync send prepared for receive: {}", sendResult);
+
+        Executors.newScheduledThreadPool(5).scheduleAtFixedRate(() -> {
+            List<MessageExt> receiveRocketMessages = rocketTemplate.receive(TopicTag.of(topic));
+            if (!ObjectUtils.isEmpty(receiveRocketMessages)) {
+                log.info("receive {} messages", receiveRocketMessages.size());
+                receiveRocketMessages.forEach(message -> log.info("receive {} message: {}, queue: {}", topic, message, message.getQueueId()));
+            } else {
+                log.info("receive no messages");
+            }
+        }, -1, 1000, TimeUnit.MILLISECONDS);
+
+        Thread.sleep(10000);
+    }
+
+
+    @SneakyThrows
+    @Test
+    public void receiveAndConvertTest() {
+        String topic = "rocket-receive-convert";
+
+        List<PayloadSend> payloads = IntStream.range(0, 100).boxed().map(i -> PayloadSend.create()).toList();
+        SendResult sendResult = rocketTemplate.sendBatch(TopicTag.of(topic), payloads);
+        log.info("sync send prepared for receive: {}", sendResult);
+
+        Executors.newScheduledThreadPool(5).scheduleAtFixedRate(() -> {
+            List<PayloadSend> receivePayloads = rocketTemplate.receiveAndConvert(TopicTag.of(topic), PayloadSend.class);
+            if (!ObjectUtils.isEmpty(receivePayloads)) {
+                log.info("receive {} payloads", receivePayloads.size());
+                receivePayloads.forEach(payload -> log.info("receive {} payload: {}", topic, payload));
+            } else {
+                log.info("receive no payloads");
+            }
+        }, -1, 1000, TimeUnit.MILLISECONDS);
+
+        Thread.sleep(10000);
     }
 
 

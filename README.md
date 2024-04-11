@@ -22,7 +22,7 @@ It is functionally similar to the following projects:
 - [x] sequential consuming
 - [x] batch consuming
 - [x] consuming with push mode
-- [ ] consuming with pull mode
+- [x] consuming with pull mode
 - [x] message filtering
 - [x] message tracing
 - [x] authentication and authorization support

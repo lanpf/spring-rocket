@@ -7,6 +7,7 @@ import org.springframework.boot.context.properties.PropertyMapper;
 import org.springframework.boot.convert.DurationUnit;
 import org.springframework.rocket.client.ClientProperties;
 import org.springframework.rocket.client.ProducerProperties;
+import org.springframework.rocket.client.PullConsumerProperties;
 import org.springframework.rocket.client.PushConsumerProperties;
 
 import java.time.Duration;
@@ -66,6 +67,13 @@ public class RocketProperties {
         return result;
     }
 
+    public Properties buildPullConsumerProperties() {
+        Properties result = this.getConsumer().getPull().buildProperties();
+        this.getProperties().forEach(result::putIfAbsent);
+        result.putIfAbsent(ClientProperties.NAME_SERVER, nameServer);
+        return result;
+    }
+
     @Data
     public static class Producer {
         private String groupId;
@@ -94,6 +102,7 @@ public class RocketProperties {
     @Data
     public static class Consumer {
         private final Push push = new Push();
+        private final Pull pull = new Pull();
 
         @Data
         public static class Push {
@@ -127,6 +136,28 @@ public class RocketProperties {
                 map.from(this::getRetries).to(value -> properties.put(PushConsumerProperties.RETRIES, value));
                 map.from(this::getSuspendCurrentQueueTime).as(Duration::toMillis).to(value -> properties.put(PushConsumerProperties.SUSPEND_CURRENT_QUEUE_TIME_MILLIS, value));
                 map.from(this::getRetryDelayLevel).to(value -> properties.put(PushConsumerProperties.RETRY_DELAY_LEVEL, value));
+                return properties;
+            }
+        }
+
+        @Data
+        public static class Pull {
+            private String groupId;
+            private String messageModel;
+            private Integer pullBatchSize;
+            private Integer pullThreads;
+            @DurationUnit(ChronoUnit.MILLIS)
+            private Duration pollTimeout;
+            private Boolean autoCommit;
+
+            public Properties buildProperties() {
+                Properties properties = new Properties();
+                PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
+                map.from(this::getGroupId).to(value -> properties.put(PullConsumerProperties.GROUP_ID, value));
+                map.from(this::getMessageModel).to(value -> properties.put(PullConsumerProperties.MESSAGE_MODEL, value));
+                map.from(this::getPullBatchSize).to(value -> properties.put(PullConsumerProperties.PULL_BATCH_SIZE, value));
+                map.from(this::getPullThreads).to(value -> properties.put(PullConsumerProperties.PULL_THREADS, value));
+                map.from(this::getPollTimeout).as(Duration::toMillis).to(value -> properties.put(PullConsumerProperties.POLL_TIMEOUT_MILLIS, value));
                 return properties;
             }
         }
