@@ -253,10 +253,10 @@ public class SpringRocketTest {
 
         TransactionSendResult sendResult;
         sendResult = rocketTemplate.sendInTransaction(topic, PayloadSend.create(), randomTransactionArg());
-        log.info("sync send in transaction: {}", sendResult);
+        log.info("send in transaction: {}", sendResult);
 
         sendResult = rocketTemplate.sendInTransaction(new TopicTag(topic, "1"), PayloadSend.create(), randomTransactionArg());
-        log.info("sync send in transaction with tags: {}", sendResult);
+        log.info("send in transaction with tags: {}", sendResult);
 
         Map<String, Object> headers = MapBuilder.builder()
                 .put(RocketHeaders.KEYS, "keys-rocket-send-transaction")
@@ -264,10 +264,10 @@ public class SpringRocketTest {
                 .build();
 
         sendResult = rocketTemplate.sendInTransaction(topic, PayloadSend.create(), () -> headers);
-        log.info("sync send in transaction with header: {}", sendResult);
+        log.info("send in transaction with header: {}", sendResult);
 
         sendResult = rocketTemplate.sendInTransaction(topic, MessageBuilder.createMessage(PayloadSend.create(), new MessageHeaders(headers)));
-        log.info("sync send in transaction messaging: {}", sendResult);
+        log.info("send in transaction messaging: {}", sendResult);
 
         Thread.sleep(10000);
     }
