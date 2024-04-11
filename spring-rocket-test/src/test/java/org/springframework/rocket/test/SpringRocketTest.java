@@ -4,6 +4,7 @@ import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.client.producer.TransactionSendResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.messaging.Message;
@@ -244,6 +245,37 @@ public class SpringRocketTest {
 
         Thread.sleep(5000);
     }
+
+    @SneakyThrows
+    @Test
+    public void sendInTransactionTest() {
+        String topic = "rocket-send-transaction";
+
+        TransactionSendResult sendResult;
+        sendResult = rocketTemplate.sendInTransaction(topic, PayloadSend.create(), randomTransactionArg());
+        log.info("sync send in transaction: {}", sendResult);
+
+        sendResult = rocketTemplate.sendInTransaction(new TopicTag(topic, "1"), PayloadSend.create(), randomTransactionArg());
+        log.info("sync send in transaction with tags: {}", sendResult);
+
+        Map<String, Object> headers = MapBuilder.builder()
+                .put(RocketHeaders.KEYS, "keys-rocket-send-transaction")
+                .put(RocketHeaders.TRANSACTION_ARG, randomTransactionArg())
+                .build();
+
+        sendResult = rocketTemplate.sendInTransaction(topic, PayloadSend.create(), () -> headers);
+        log.info("sync send in transaction with header: {}", sendResult);
+
+        sendResult = rocketTemplate.sendInTransaction(topic, MessageBuilder.createMessage(PayloadSend.create(), new MessageHeaders(headers)));
+        log.info("sync send in transaction messaging: {}", sendResult);
+
+        Thread.sleep(10000);
+    }
+
+    private Object randomTransactionArg() {
+        return ((int) (Math.random() * 100)) % 2 == 0;
+    }
+
 
     @SneakyThrows
     @Test
