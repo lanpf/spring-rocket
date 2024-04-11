@@ -11,6 +11,7 @@ import org.springframework.rocket.listener.adapter.AbstractRocketMessageListener
 import org.springframework.rocket.listener.adapter.BatchRocketMessageListenerAdapter;
 import org.springframework.rocket.listener.adapter.DefaultRocketMessageListenerAdapter;
 import org.springframework.rocket.listener.adapter.HandlerAdapter;
+import org.springframework.rocket.support.JavaUtils;
 import org.springframework.rocket.support.MessageConverter;
 import org.springframework.rocket.support.converter.MessagingMessageConverter;
 import org.springframework.util.Assert;
@@ -35,6 +36,7 @@ public class MethodRocketListenerEndpoint extends AbstractRocketListenerEndpoint
         HandlerAdapter handlerMethod = configureListenerAdapter();
         messageListener.setHandlerMethod(handlerMethod);
 
+        JavaUtils.INSTANCE.acceptIfNotNull(getReplyTemplate(), messageListener::setReplyTemplate);
         return messageListener;
     }
 

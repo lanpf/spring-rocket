@@ -16,6 +16,8 @@ public class DefaultRocketListenerContainerFactoryConfigurer {
 
     private MessageConverter messageConverter;
 
+    private RocketTemplate replyTemplate;
+
 
     public void configure(DefaultRocketListenerContainerFactory containerFactory) {
         configureListenerContainerFactory(containerFactory);
@@ -27,6 +29,7 @@ public class DefaultRocketListenerContainerFactoryConfigurer {
         RocketProperties.Listener properties = this.rocketProperties.getListener();
         map.from(properties::getConcurrency).to(containerFactory::setConcurrency);
         map.from(this.messageConverter).to(containerFactory::setMessageConverter);
+        map.from(this.replyTemplate).to(containerFactory::setReplyTemplate);
     }
 
     private void configureContainer(ContainerProperties containerProperties) {

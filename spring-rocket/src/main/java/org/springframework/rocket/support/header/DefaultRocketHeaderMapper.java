@@ -24,8 +24,10 @@ public class DefaultRocketHeaderMapper implements RocketHeaderMapper {
         RocketHeaderUtils.KEYS_HEADER_GET.accept(rocketMessage, springHeaders);
         RocketHeaderUtils.FLAG_HEADER_GET.accept(rocketMessage, springHeaders);
         RocketHeaderUtils.WAIT_STORE_MSG_OK_HEADER_GET.accept(rocketMessage, springHeaders);
-
         RocketHeaderUtils.DELAY_HEADER_GET.accept(rocketMessage, springHeaders);
+        RocketHeaderUtils.TRANSACTION_ID_HEADER_GET.accept(rocketMessage, springHeaders);
+
+        RocketHeaderUtils.REPLY_HEADER_GET.accept(rocketMessage, springHeaders);
 
         springHeaders.entrySet().stream()
                 .filter(entry -> customize(entry.getKey()))
@@ -44,7 +46,8 @@ public class DefaultRocketHeaderMapper implements RocketHeaderMapper {
                 .acceptIfHasText(rocketMessage.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS), value -> springHeaders.put(RocketHeaders.RECEIVED_DELIVER_TIME_MILLIS, value))
                 .acceptIfHasText(rocketMessage.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS), value -> springHeaders.put(RocketHeaders.RECEIVED_DELAY_MILLIS, value))
                 .acceptIfHasText(rocketMessage.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC), value -> springHeaders.put(RocketHeaders.RECEIVED_DELAY_SECONDS, value))
-                .acceptIfHasText(rocketMessage.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL), value -> springHeaders.put(RocketHeaders.RECEIVED_DELAY_LEVEL, value));
+                .acceptIfHasText(rocketMessage.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL), value -> springHeaders.put(RocketHeaders.RECEIVED_DELAY_LEVEL, value))
+                .acceptIfHasText(rocketMessage.getTransactionId(), value -> springHeaders.put(RocketHeaders.RECEIVED_TRANSACTION_ID, value));
 
         if (rocketMessage instanceof MessageExt messageExt) {
             JavaUtils.INSTANCE
@@ -63,7 +66,6 @@ public class DefaultRocketHeaderMapper implements RocketHeaderMapper {
             ).forEach(entry -> springHeaders.put(entry.getKey(), entry.getValue()));
         }
     }
-
 
     private boolean customize(String key) {
         if (MessageConst.STRING_HASH_SET.contains(key)) {

@@ -36,6 +36,14 @@ public abstract class RocketHeaders {
      */
     public static final String TRANSACTION_ARG = PREFIX + "TRANSACTION_ARG";
     public static final String TRANSACTION_ID = PREFIX + "TRANSACTION_ID";
+    /**
+     * --------------------    reply header    --------------------
+     */
+    public static final String REPLY_TOPIC = PREFIX + "REPLY_TOPIC";
+    public static final String MESSAGE_TYPE = PREFIX + MessageConst.PROPERTY_MESSAGE_TYPE;
+    public static final String CORRELATION_ID = PREFIX + MessageConst.PROPERTY_CORRELATION_ID;
+    public static final String MESSAGE_REPLY_TO_CLIENT = PREFIX + MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT;
+    public static final String MESSAGE_TTL = PREFIX + MessageConst.PROPERTY_MESSAGE_TTL;
 
 
     public static final String RECEIVED = PREFIX + "received_";

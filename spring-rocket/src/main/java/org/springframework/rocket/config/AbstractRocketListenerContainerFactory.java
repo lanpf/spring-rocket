@@ -8,6 +8,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.rocket.client.RocketPushConsumerFactory;
+import org.springframework.rocket.core.RocketTemplate;
 import org.springframework.rocket.listener.AbstractRocketMessageListenerContainer;
 import org.springframework.rocket.listener.ContainerProperties;
 import org.springframework.rocket.support.JavaUtils;
@@ -29,6 +30,8 @@ public abstract class AbstractRocketListenerContainerFactory<C extends AbstractR
     private Integer phase;
 
     private MessageConverter messageConverter;
+
+    private RocketTemplate replyTemplate;
 
     private ApplicationEventPublisher applicationEventPublisher;
 
@@ -54,7 +57,7 @@ public abstract class AbstractRocketListenerContainerFactory<C extends AbstractR
     protected abstract C createContainerInstance(RocketListenerEndpoint endpoint);
 
     private void configureEndpoint(AbstractRocketListenerEndpoint abstractEndpoint) {
-        // empty
+        JavaUtils.INSTANCE.acceptIfNotNull(this.replyTemplate, abstractEndpoint::setReplyTemplate);
     }
 
     protected void initializeContainer(C instance, RocketListenerEndpoint endpoint) {
