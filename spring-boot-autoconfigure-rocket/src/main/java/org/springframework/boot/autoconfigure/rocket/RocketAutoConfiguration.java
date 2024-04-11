@@ -12,7 +12,6 @@ import org.springframework.rocket.client.DefaultRocketProducerFactory;
 import org.springframework.rocket.client.DefaultRocketPullConsumerFactory;
 import org.springframework.rocket.client.DefaultRocketPushConsumerFactory;
 import org.springframework.rocket.client.RocketProducerFactory;
-import org.springframework.rocket.client.RocketPullConsumerFactory;
 import org.springframework.rocket.client.RocketPushConsumerFactory;
 import org.springframework.rocket.config.RocketSupportBeanNames;
 import org.springframework.rocket.core.RocketTemplate;
@@ -28,8 +27,12 @@ public class RocketAutoConfiguration {
     @ConditionalOnMissingBean(name = RocketSupportBeanNames.DEFAULT_ROCKET_TEMPLATE_BEAN_NAME)
     public RocketTemplate rocketTemplate(
             RocketProducerFactory producerFactory,
+            ObjectProvider<MessagingMessageConverter> messageConverter,
+            ObjectProvider<MessageQueueSelector> messageQueueSelector,
             ObjectProvider<RocketTemplateCustomizer> customizers) {
         RocketTemplate rocketTemplate = new RocketTemplate(producerFactory);
+        messageConverter.ifUnique(rocketTemplate::setMessageConverter);
+        messageQueueSelector.ifUnique(rocketTemplate::setMessageQueueSelector);
         customizers.orderedStream().forEach(customizer -> customizer.customize(rocketTemplate));
         return rocketTemplate;
     }
@@ -44,19 +47,6 @@ public class RocketAutoConfiguration {
     @ConditionalOnMissingBean(RocketPushConsumerFactory.class)
     public RocketPushConsumerFactory rocketPushConsumerFactory(RocketProperties rocketProperties) {
         return new DefaultRocketPushConsumerFactory(rocketProperties.buildPushConsumerProperties());
-    }
-
-
-    @Bean(name = "messageConverterRocketTemplateCustomizer")
-    @ConditionalOnMissingBean(name = "messageConverterRocketTemplateCustomizer")
-    public RocketTemplateCustomizer messageConverterRocketTemplateCustomizer(ObjectProvider<MessagingMessageConverter> messageConverter) {
-        return rocketTemplate -> messageConverter.ifAvailable(rocketTemplate::setMessageConverter);
-    }
-
-    @Bean(name = "messageQueueSelectorRocketTemplateCustomizer")
-    @ConditionalOnMissingBean(name = "messageQueueSelectorRocketTemplateCustomizer")
-    public RocketTemplateCustomizer messageQueueSelectorRocketTemplateCustomizer(ObjectProvider<MessageQueueSelector> messageQueueSelector) {
-        return rocketTemplate -> messageQueueSelector.ifAvailable(rocketTemplate::setMessageQueueSelector);
     }
 
     @Bean(name = "transactionExecutorRocketTemplateCustomizer")

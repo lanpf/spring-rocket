@@ -10,6 +10,7 @@ import org.springframework.rocket.annotation.RocketListenerAnnotationBeanPostPro
 import org.springframework.rocket.client.RocketPushConsumerFactory;
 import org.springframework.rocket.config.DefaultRocketListenerContainerFactory;
 import org.springframework.rocket.config.RocketSupportBeanNames;
+import org.springframework.rocket.core.RocketTemplate;
 import org.springframework.rocket.support.converter.MessagingMessageConverter;
 
 @Configuration(proxyBeanMethods = false)
@@ -20,9 +21,11 @@ public class RocketAnnotationDrivenConfiguration {
     @ConditionalOnMissingBean
     DefaultRocketListenerContainerFactoryConfigurer rocketListenerContainerFactoryConfigurer(
             ObjectProvider<RocketProperties> rocketProperties,
-            ObjectProvider<MessagingMessageConverter> messageConverter) {
+            ObjectProvider<MessagingMessageConverter> messageConverter,
+            ObjectProvider<RocketTemplate> replyTemplate) {
         DefaultRocketListenerContainerFactoryConfigurer configurer = new DefaultRocketListenerContainerFactoryConfigurer(rocketProperties.getIfUnique());
         configurer.setMessageConverter(messageConverter.getIfUnique());
+        configurer.setReplyTemplate(replyTemplate.getIfUnique());
         return configurer;
     }
 
