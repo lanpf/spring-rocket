@@ -17,8 +17,12 @@ public class PayloadSend implements Serializable {
     private Long timestamp;
 
     public static PayloadSend create() {
+        return create(UUID.randomUUID().toString());
+    }
+
+    public static PayloadSend create(String id) {
         return PayloadSend.builder()
-                .id(UUID.randomUUID().toString())
+                .id(id)
                 .timestamp(System.currentTimeMillis())
                 .build();
     }

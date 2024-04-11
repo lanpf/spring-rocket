@@ -20,7 +20,17 @@ public abstract class RocketHeaders {
     public static final String KEYS = PREFIX + MessageConst.PROPERTY_KEYS;
     public static final String FLAG = PREFIX + "FLAG";
     public static final String WAIT_STORE_MSG_OK = PREFIX + MessageConst.PROPERTY_WAIT_STORE_MSG_OK;
-
+    /**
+     * --------------------    delay header    --------------------
+     */
+    public static final String DELAY_TIME_LEVEL = PREFIX + MessageConst.PROPERTY_DELAY_TIME_LEVEL;
+    public static final String TIMER_DELIVER_MS = PREFIX + MessageConst.PROPERTY_TIMER_DELIVER_MS;
+    public static final String TIMER_DELAY_SEC = PREFIX + MessageConst.PROPERTY_TIMER_DELAY_SEC;
+    public static final String TIMER_DELAY_MS = PREFIX + MessageConst.PROPERTY_TIMER_DELAY_MS;
+    /**
+     * --------------------    sharding header   --------------------
+     */
+     public static final String SHARDING_KEY = PREFIX + "SHARDING_KEY";
 
     public static final String RECEIVED = PREFIX + "received_";
     /**
@@ -40,6 +50,13 @@ public abstract class RocketHeaders {
     public static final String RECEIVED_KEYS = RECEIVED + MessageConst.PROPERTY_KEYS;
     public static final String RECEIVED_FLAG = RECEIVED + "FLAG";
     public static final String RECEIVED_WAIT_STORE_MSG_OK = RECEIVED + MessageConst.PROPERTY_WAIT_STORE_MSG_OK;
+    /**
+     * --------------------    received delay header    --------------------
+     */
+    public static final String RECEIVED_DELIVER_TIME_MILLIS = RECEIVED + MessageConst.PROPERTY_TIMER_DELIVER_MS;
+    public static final String RECEIVED_DELAY_MILLIS = RECEIVED + MessageConst.PROPERTY_TIMER_DELAY_MS;
+    public static final String RECEIVED_DELAY_SECONDS = RECEIVED + MessageConst.PROPERTY_TIMER_DELAY_SEC;
+    public static final String RECEIVED_DELAY_LEVEL = RECEIVED + MessageConst.PROPERTY_DELAY_TIME_LEVEL;
 
     public static String replacePrefix(String key) {
         return StringUtils.hasText(key) ? key.replaceFirst("^" + PREFIX, "") : null;

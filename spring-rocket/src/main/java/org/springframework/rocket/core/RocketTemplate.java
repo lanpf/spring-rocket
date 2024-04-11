@@ -4,8 +4,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import org.apache.rocketmq.client.producer.MQProducer;
+import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.client.producer.selector.SelectMessageQueueByHash;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -16,6 +19,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.rocket.client.RocketProducerFactory;
 import org.springframework.rocket.support.RocketHeaderUtils;
+import org.springframework.rocket.support.RocketHeaders;
 import org.springframework.rocket.support.converter.DefaultMessagingMessageConverter;
 import org.springframework.rocket.support.converter.MessagingMessageConverter;
 import org.springframework.util.Assert;
@@ -35,6 +39,7 @@ public class RocketTemplate implements RocketOperations,
         ApplicationContextAware, SmartInitializingSingleton, InitializingBean, DisposableBean {
 
     protected MessagingMessageConverter messageConverter = new DefaultMessagingMessageConverter();
+    protected MessageQueueSelector messageQueueSelector = new SelectMessageQueueByHash();
 
     private final RocketProducerFactory producerFactory;
     private MQProducer producer;
@@ -103,6 +108,12 @@ public class RocketTemplate implements RocketOperations,
     public SendResult send(TopicTag topicTag, Object payload, Long timeoutMillis) {
         return send(topicTag.topic(), payload, supplyHeaders(topicTag.tag()), timeoutMillis);
     }
+    public SendResult send(TopicTag topicTag, Object payload, String shardingKey, Delay delay) {
+        return send(topicTag, payload, shardingKey, delay, null);
+    }
+    public SendResult send(TopicTag topicTag, Object payload, String shardingKey, Delay delay, Long timeoutMillis) {
+        return send(topicTag.topic(), payload, supplyHeaders(topicTag.tag(), shardingKey, delay), timeoutMillis);
+    }
     public SendResult send(String topic, Object payload) {
         return send(topic, payload, (Long) null);
     }
@@ -122,7 +133,14 @@ public class RocketTemplate implements RocketOperations,
         Message<?> converted = this.messageConverter.convert(message.getPayload(), message.getHeaders());
         org.apache.rocketmq.common.message.Message rocketMessage = this.messageConverter.fromMessage(converted, topic);
 
-        return this.producer.send(rocketMessage, getSendTimeoutMillis(timeoutMillis));
+        SendResult sendResult;
+        Object shardingKey = RocketHeaders.find(message.getHeaders(), RocketHeaders.SHARDING_KEY);
+        if (!ObjectUtils.isEmpty(shardingKey)) {
+            sendResult = this.producer.send(rocketMessage, this.messageQueueSelector, shardingKey, getSendTimeoutMillis(timeoutMillis));
+        } else {
+            sendResult = this.producer.send(rocketMessage, getSendTimeoutMillis(timeoutMillis));
+        }
+        return sendResult;
     }
     public SendResult sendBatch(TopicTag topicTag, List<?> payloads) {
         return sendBatch(topicTag, payloads, null);
@@ -144,7 +162,15 @@ public class RocketTemplate implements RocketOperations,
                     return this.messageConverter.fromMessage(converted, topic);
                 }).collect(Collectors.toList());
 
-        return this.producer.send(rocketMessages, getSendTimeoutMillis(timeoutMillis));
+        SendResult sendResult;
+        Object shardingKey = RocketHeaders.find(messages.get(0).getHeaders(), RocketHeaders.SHARDING_KEY);
+        if (!ObjectUtils.isEmpty(shardingKey)) {
+            MessageQueue messageQueue = this.messageQueueSelector.select(this.producer.fetchPublishMessageQueues(topic), null, shardingKey);
+            sendResult = this.producer.send(rocketMessages, messageQueue, getSendTimeoutMillis(timeoutMillis));
+        } else {
+            sendResult = this.producer.send(rocketMessages, getSendTimeoutMillis(timeoutMillis));
+        }
+        return sendResult;
     }
     /**
      * --------------------    async send    --------------------
@@ -154,6 +180,12 @@ public class RocketTemplate implements RocketOperations,
     }
     public void sendAsync(TopicTag topicTag, Object payload, Long timeoutMillis, BiConsumer<SendResult, Throwable> sendConsumer) {
         sendAsync(topicTag.topic(), payload, supplyHeaders(topicTag.tag()), timeoutMillis, sendConsumer);
+    }
+    public void sendAsync(TopicTag topicTag, Object payload, String shardingKey, Delay delay, BiConsumer<SendResult, Throwable> sendConsumer) {
+        sendAsync(topicTag, payload, shardingKey, delay, null, sendConsumer);
+    }
+    public void sendAsync(TopicTag topicTag, Object payload, String shardingKey, Delay delay, Long timeoutMillis, BiConsumer<SendResult, Throwable> sendConsumer) {
+        sendAsync(topicTag.topic(), payload, supplyHeaders(topicTag.tag(), shardingKey, delay), timeoutMillis, sendConsumer);
     }
     public void sendAsync(String topic, Object payload, BiConsumer<SendResult, Throwable> sendConsumer) {
         sendAsync(topic, payload, (Long) null, sendConsumer);
@@ -186,7 +218,12 @@ public class RocketTemplate implements RocketOperations,
             }
         };
 
-        this.producer.send(rocketMessage, callback, getSendTimeoutMillis(timeoutMillis));
+        Object shardingKey = RocketHeaders.find(message.getHeaders(), RocketHeaders.SHARDING_KEY);
+        if (!ObjectUtils.isEmpty(shardingKey)) {
+            this.producer.send(rocketMessage, this.messageQueueSelector, shardingKey, callback, getSendTimeoutMillis(timeoutMillis));
+        } else {
+            this.producer.send(rocketMessage, callback, getSendTimeoutMillis(timeoutMillis));
+        }
     }
     public void sendBatchAsync(TopicTag topicTag, List<?> payloads, BiConsumer<SendResult, Throwable> sendConsumer) {
         sendBatchAsync(topicTag, payloads, null, sendConsumer);
@@ -220,7 +257,13 @@ public class RocketTemplate implements RocketOperations,
             }
         };
 
-        this.producer.send(rocketMessages, callback, getSendTimeoutMillis(timeoutMillis));
+        Object shardingKey = RocketHeaders.find(messages.get(0).getHeaders(), RocketHeaders.SHARDING_KEY);
+        if (!ObjectUtils.isEmpty(shardingKey)) {
+            MessageQueue messageQueue = this.messageQueueSelector.select(this.producer.fetchPublishMessageQueues(topic), null, shardingKey);
+            this.producer.send(rocketMessages, messageQueue, callback, getSendTimeoutMillis(timeoutMillis));
+        } else {
+            this.producer.send(rocketMessages, callback, getSendTimeoutMillis(timeoutMillis));
+        }
     }
 
     private Message<?> buildMessage(Object payload, Supplier<Map<String, Object>> headerSupplier) {
@@ -237,6 +280,16 @@ public class RocketTemplate implements RocketOperations,
         return () -> {
             Map<String, Object> headers = new HashMap<>(64);
             RocketHeaderUtils.TAGS_HEADER_SET.accept(headers, tags);
+            return headers;
+        };
+    }
+
+    private Supplier<Map<String, Object>> supplyHeaders(String tags, String shardingKey, Delay delay) {
+        return () -> {
+            Map<String, Object> headers = new HashMap<>(64);
+            RocketHeaderUtils.TAGS_HEADER_SET.accept(headers, tags);
+            RocketHeaderUtils.SHARDING_KEY_HEADER_SET.accept(headers, shardingKey);
+            RocketHeaderUtils.DELAY_HEADER_SET.accept(headers, delay);
             return headers;
         };
     }
