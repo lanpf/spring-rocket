@@ -9,8 +9,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.rocket.client.DefaultRocketProducerFactory;
+import org.springframework.rocket.client.DefaultRocketPullConsumerFactory;
 import org.springframework.rocket.client.DefaultRocketPushConsumerFactory;
 import org.springframework.rocket.client.RocketProducerFactory;
+import org.springframework.rocket.client.RocketPullConsumerFactory;
 import org.springframework.rocket.client.RocketPushConsumerFactory;
 import org.springframework.rocket.config.RocketSupportBeanNames;
 import org.springframework.rocket.core.RocketTemplate;
@@ -25,14 +27,10 @@ public class RocketAutoConfiguration {
     @Bean(name = RocketSupportBeanNames.DEFAULT_ROCKET_TEMPLATE_BEAN_NAME)
     @ConditionalOnMissingBean(name = RocketSupportBeanNames.DEFAULT_ROCKET_TEMPLATE_BEAN_NAME)
     public RocketTemplate rocketTemplate(
-            RocketProperties rocketProperties,
             RocketProducerFactory producerFactory,
-            ObjectProvider<MessagingMessageConverter> messageConverter,
-            ObjectProvider<MessageQueueSelector> messageQueueSelector) {
+            ObjectProvider<RocketTemplateCustomizer> customizers) {
         RocketTemplate rocketTemplate = new RocketTemplate(producerFactory);
-        messageConverter.ifAvailable(rocketTemplate::setMessageConverter);
-        messageQueueSelector.ifAvailable(rocketTemplate::setMessageQueueSelector);
-        rocketTemplate.setTransactionExecutor(rocketProperties.getTemplate().getTransactionalExecutor().create());
+        customizers.orderedStream().forEach(customizer -> customizer.customize(rocketTemplate));
         return rocketTemplate;
     }
 
@@ -46,5 +44,30 @@ public class RocketAutoConfiguration {
     @ConditionalOnMissingBean(RocketPushConsumerFactory.class)
     public RocketPushConsumerFactory rocketPushConsumerFactory(RocketProperties rocketProperties) {
         return new DefaultRocketPushConsumerFactory(rocketProperties.buildPushConsumerProperties());
+    }
+
+
+    @Bean(name = "messageConverterRocketTemplateCustomizer")
+    @ConditionalOnMissingBean(name = "messageConverterRocketTemplateCustomizer")
+    public RocketTemplateCustomizer messageConverterRocketTemplateCustomizer(ObjectProvider<MessagingMessageConverter> messageConverter) {
+        return rocketTemplate -> messageConverter.ifAvailable(rocketTemplate::setMessageConverter);
+    }
+
+    @Bean(name = "messageQueueSelectorRocketTemplateCustomizer")
+    @ConditionalOnMissingBean(name = "messageQueueSelectorRocketTemplateCustomizer")
+    public RocketTemplateCustomizer messageQueueSelectorRocketTemplateCustomizer(ObjectProvider<MessageQueueSelector> messageQueueSelector) {
+        return rocketTemplate -> messageQueueSelector.ifAvailable(rocketTemplate::setMessageQueueSelector);
+    }
+
+    @Bean(name = "transactionExecutorRocketTemplateCustomizer")
+    @ConditionalOnMissingBean(name = "transactionExecutorRocketTemplateCustomizer")
+    public RocketTemplateCustomizer transactionExecutorRocketTemplateCustomizer(RocketProperties rocketProperties) {
+        return rocketTemplate -> rocketTemplate.setTransactionExecutor(rocketProperties.getTemplate().getTransactionalExecutor().create());
+    }
+
+    @Bean(name = "pullConsumerFactoryRocketTemplateCustomizer")
+    @ConditionalOnMissingBean(name = "pullConsumerFactoryRocketTemplateCustomizer")
+    public RocketTemplateCustomizer pullConsumerFactoryRocketTemplateCustomizer(RocketProperties rocketProperties) {
+        return rocketTemplate -> rocketTemplate.setPullConsumerFactory(new DefaultRocketPullConsumerFactory(rocketProperties.buildPullConsumerProperties()));
     }
 }
