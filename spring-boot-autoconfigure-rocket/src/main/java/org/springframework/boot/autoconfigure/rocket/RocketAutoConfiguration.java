@@ -25,12 +25,14 @@ public class RocketAutoConfiguration {
     @Bean(name = RocketSupportBeanNames.DEFAULT_ROCKET_TEMPLATE_BEAN_NAME)
     @ConditionalOnMissingBean(name = RocketSupportBeanNames.DEFAULT_ROCKET_TEMPLATE_BEAN_NAME)
     public RocketTemplate rocketTemplate(
+            RocketProperties rocketProperties,
             RocketProducerFactory producerFactory,
             ObjectProvider<MessagingMessageConverter> messageConverter,
             ObjectProvider<MessageQueueSelector> messageQueueSelector) {
         RocketTemplate rocketTemplate = new RocketTemplate(producerFactory);
         messageConverter.ifAvailable(rocketTemplate::setMessageConverter);
         messageQueueSelector.ifAvailable(rocketTemplate::setMessageQueueSelector);
+        rocketTemplate.setTransactionExecutor(rocketProperties.getTemplate().getTransactionalExecutor().create());
         return rocketTemplate;
     }
 

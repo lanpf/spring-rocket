@@ -2,6 +2,7 @@ package org.springframework.rocket.support;
 
 import org.apache.rocketmq.common.message.Message;
 import org.springframework.rocket.core.Delay;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.Map;
@@ -93,6 +94,19 @@ public class RocketHeaderUtils {
     public static final BiConsumer<Map<String, Object>, String> SHARDING_KEY_HEADER_SET = (headers, headerValue) -> {
         if (StringUtils.hasText(headerValue)) {
             headers.put(RocketHeaders.SHARDING_KEY, headerValue);
+        }
+    };
+
+    public static final BiConsumer<Message, Map<String, Object>> TRANSACTION_ID_HEADER_GET = (rocketMessage, springHeaders) -> {
+        String headerValue = PropertiesUtils.extractAsString(header -> RocketHeaders.find(springHeaders, header), RocketHeaders.TRANSACTION_ID);
+        if (StringUtils.hasText(headerValue)) {
+            rocketMessage.setTransactionId(headerValue);
+        }
+    };
+
+    public static final BiConsumer<Map<String, Object>, Object> TRANSACTION_ARG_HEADER_SET = (headers, headerValue) -> {
+        if (!ObjectUtils.isEmpty(headerValue)) {
+            headers.put(RocketHeaders.TRANSACTION_ARG, headerValue);
         }
     };
 }

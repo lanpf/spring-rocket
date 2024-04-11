@@ -1,5 +1,6 @@
 package org.springframework.boot.autoconfigure.rocket;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.PropertyMapper;
@@ -13,6 +14,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 @Data
 @ConfigurationProperties(prefix = RocketProperties.PREFIX)
@@ -141,6 +146,37 @@ public class RocketProperties {
          * Default destination to which messages are sent.
          */
         private String defaultDestination;
+        private final Executor transactionalExecutor = new Executor() {{
+            setThreadNamePrefix("transactional-");
+        }};
+    }
+
+    @Data
+    public static class Executor {
+        private String threadNamePrefix;
+        /**
+         * Core number of threads.
+         */
+        private int coreSize = 1;
+        /**
+         * Maximum allowed number of threads. If tasks are filling up the queue, the pool
+         * can expand up to that size to accommodate the load. Ignored if the queue is
+         * unbounded.
+         */
+        private int maxSize = Runtime.getRuntime().availableProcessors();
+        /**
+         * Time limit for which threads may remain idle before being terminated.
+         */
+        @DurationUnit(ChronoUnit.SECONDS)
+        private Duration keepAlive = Duration.ofSeconds(60);
+        private int queueCapacity = 1024;
+
+        public ExecutorService create() {
+            return new ThreadPoolExecutor(coreSize, maxSize,
+                    keepAlive.toMillis(), TimeUnit.MILLISECONDS,
+                    new LinkedBlockingQueue<>(queueCapacity),
+                    new ThreadFactoryBuilder().setNameFormat(threadNamePrefix + "-pool-%d").build());
+        }
     }
 
 }

@@ -22,5 +22,11 @@ public class RocketBootstrapConfiguration implements ImportBeanDefinitionRegistr
                     RocketSupportBeanNames.ROCKET_LISTENER_ENDPOINT_REGISTRY_BEAN_NAME,
                     new RootBeanDefinition(RocketListenerEndpointRegistry.class));
         }
+
+        if (!registry.containsBeanDefinition(RocketSupportBeanNames.ROCKET_TRANSACTIONAL_ANNOTATION_PROCESSOR_BEAN_NAME)) {
+            registry.registerBeanDefinition(
+                    RocketSupportBeanNames.ROCKET_TRANSACTIONAL_ANNOTATION_PROCESSOR_BEAN_NAME,
+                    new RootBeanDefinition(RocketTransactionalAnnotationBeanPostProcessor.class));
+        }
     }
 }

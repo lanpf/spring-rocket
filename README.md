@@ -16,7 +16,7 @@ It is functionally similar to the following projects:
 - [x] batch sending
 - [x] delay sending
 - [x] send in one-way mode
-- [ ] send in transaction
+- [x] send in transaction
 - [ ] send and receive (request-reply)
 - [x] concurrent consuming
 - [x] sequential consuming

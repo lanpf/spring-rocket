@@ -6,6 +6,7 @@ import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MQProducer;
+import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.springframework.rocket.support.JavaUtils;
 import org.springframework.rocket.support.PropertiesUtils;
@@ -31,12 +32,22 @@ public class DefaultRocketProducerFactory implements RocketProducerFactory {
 
         boolean aclEnabled = StringUtils.hasText(producerProperties.getAccessKey()) && StringUtils.hasText(producerProperties.getSecretKey());
         RPCHook rpcHook = aclEnabled ? new AclClientRPCHook(new SessionCredentials(producerProperties.getAccessKey(), producerProperties.getSecretKey())) : null;
-        DefaultMQProducer producer = new DefaultMQProducer(
-                group,
-                rpcHook,
-                Boolean.TRUE.equals(producerProperties.getTraceEnabled()),
-                producerProperties.getCustomizedTraceTopic()
-        );
+        DefaultMQProducer producer;
+        if (Boolean.TRUE.equals(producerProperties.getTransactional())) {
+            producer = new TransactionMQProducer(
+                    group,
+                    rpcHook,
+                    Boolean.TRUE.equals(producerProperties.getTraceEnabled()),
+                    producerProperties.getCustomizedTraceTopic()
+            );
+        } else {
+            producer = new DefaultMQProducer(
+                    group,
+                    rpcHook,
+                    Boolean.TRUE.equals(producerProperties.getTraceEnabled()),
+                    producerProperties.getCustomizedTraceTopic()
+            );
+        }
 
         if (aclEnabled) {
             producer.setVipChannelEnabled(false);
