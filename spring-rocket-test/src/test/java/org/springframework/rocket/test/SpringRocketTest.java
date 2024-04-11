@@ -47,12 +47,6 @@ public class SpringRocketTest {
 
     @SneakyThrows
     @Test
-    public void consumerTest() {
-        Thread.sleep(5000);
-    }
-
-    @SneakyThrows
-    @Test
     public void sendTest() {
         String topic = "rocket-send-simple";
 
@@ -228,5 +222,32 @@ public class SpringRocketTest {
                     }
                     doSendSequentialAsync(topic, i + 1);
                 });
+    }
+
+    @SneakyThrows
+    @Test
+    public void sendOnewayTest() {
+        String topic = "rocket-send-oneway";
+
+        rocketTemplate.sendOneway(topic, PayloadSend.create());
+
+        rocketTemplate.sendOneway(new TopicTag(topic, "1"), PayloadSend.create());
+
+        Map<String, Object> headers = MapBuilder.builder()
+                .put(RocketHeaders.KEYS, "keys-rocket-send-oneway")
+                .build();
+        rocketTemplate.sendOneway(topic, PayloadSend.create(), () -> headers);
+
+        rocketTemplate.sendOneway(topic, MessageBuilder.createMessage(PayloadSend.create(), new MessageHeaders(headers)));
+
+        IntStream.range(0, 5).boxed().forEach(i -> rocketTemplate.sendOneway(TopicTag.of(topic), PayloadSend.create(String.valueOf(i)), "sharding-rocket-send-oneway"));
+
+        Thread.sleep(5000);
+    }
+
+    @SneakyThrows
+    @Test
+    public void consumerTest() {
+        Thread.sleep(5000);
     }
 }
