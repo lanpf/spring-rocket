@@ -50,6 +50,13 @@ public abstract class RocketHeaders {
     public static final String RECEIVED_KEYS = RECEIVED + MessageConst.PROPERTY_KEYS;
     public static final String RECEIVED_FLAG = RECEIVED + "FLAG";
     public static final String RECEIVED_WAIT_STORE_MSG_OK = RECEIVED + MessageConst.PROPERTY_WAIT_STORE_MSG_OK;
+    /**
+     * --------------------    received delay header    --------------------
+     */
+    public static final String RECEIVED_DELIVER_TIME_MILLIS = RECEIVED + MessageConst.PROPERTY_TIMER_DELIVER_MS;
+    public static final String RECEIVED_DELAY_MILLIS = RECEIVED + MessageConst.PROPERTY_TIMER_DELAY_MS;
+    public static final String RECEIVED_DELAY_SECONDS = RECEIVED + MessageConst.PROPERTY_TIMER_DELAY_SEC;
+    public static final String RECEIVED_DELAY_LEVEL = RECEIVED + MessageConst.PROPERTY_DELAY_TIME_LEVEL;
 
     public static String replacePrefix(String key) {
         return StringUtils.hasText(key) ? key.replaceFirst("^" + PREFIX, "") : null;

@@ -25,6 +25,8 @@ public class DefaultRocketHeaderMapper implements RocketHeaderMapper {
         RocketHeaderUtils.FLAG_HEADER_GET.accept(rocketMessage, springHeaders);
         RocketHeaderUtils.WAIT_STORE_MSG_OK_HEADER_GET.accept(rocketMessage, springHeaders);
 
+        RocketHeaderUtils.DELAY_HEADER_GET.accept(rocketMessage, springHeaders);
+
         springHeaders.entrySet().stream()
                 .filter(entry -> customize(entry.getKey()))
                 .forEach(entry -> MessageAccessor.putProperty(rocketMessage, entry.getKey(), String.valueOf(entry.getValue())));
@@ -38,7 +40,11 @@ public class DefaultRocketHeaderMapper implements RocketHeaderMapper {
                 .acceptIfHasText(rocketMessage.getTags(), value -> springHeaders.put(RocketHeaders.RECEIVED_TAGS, value))
                 .acceptIfHasText(rocketMessage.getKeys(), value -> springHeaders.put(RocketHeaders.RECEIVED_KEYS, value))
                 .acceptIfNotNull(rocketMessage.getFlag(), value -> springHeaders.put(RocketHeaders.RECEIVED_FLAG, value))
-                .acceptIfNotNull(rocketMessage.isWaitStoreMsgOK(), value -> springHeaders.put(RocketHeaders.RECEIVED_WAIT_STORE_MSG_OK, value));
+                .acceptIfNotNull(rocketMessage.isWaitStoreMsgOK(), value -> springHeaders.put(RocketHeaders.RECEIVED_WAIT_STORE_MSG_OK, value))
+                .acceptIfHasText(rocketMessage.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS), value -> springHeaders.put(RocketHeaders.RECEIVED_DELIVER_TIME_MILLIS, value))
+                .acceptIfHasText(rocketMessage.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS), value -> springHeaders.put(RocketHeaders.RECEIVED_DELAY_MILLIS, value))
+                .acceptIfHasText(rocketMessage.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC), value -> springHeaders.put(RocketHeaders.RECEIVED_DELAY_SECONDS, value))
+                .acceptIfHasText(rocketMessage.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL), value -> springHeaders.put(RocketHeaders.RECEIVED_DELAY_LEVEL, value));
 
         if (rocketMessage instanceof MessageExt messageExt) {
             JavaUtils.INSTANCE
