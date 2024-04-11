@@ -9,6 +9,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.rocket.core.Delay;
+import org.springframework.rocket.core.DelayMode;
 import org.springframework.rocket.core.RocketTemplate;
 import org.springframework.rocket.core.TopicTag;
 import org.springframework.rocket.support.RocketHeaders;
@@ -34,6 +36,14 @@ public class SpringRocketTest {
 
     @Resource
     private RocketTemplate rocketTemplate;
+
+    private static final Function<String, BiConsumer<SendResult, Throwable>> SEND_CONSUMER = prefix -> (sendResult, e) -> {
+        if (e == null) {
+            log.info(prefix + " success, result: {}", sendResult);
+        } else {
+            log.error(prefix + " fail", e);
+        }
+    };
 
     @SneakyThrows
     @Test
@@ -93,31 +103,60 @@ public class SpringRocketTest {
 
     @SneakyThrows
     @Test
+    public void sendDelayTest() {
+        String topic = "rocket-send-delay";
+
+        SendResult sendResult;
+
+        sendResult = rocketTemplate.send(TopicTag.of(topic), PayloadSend.create(), null, new Delay(DelayMode.DELIVER_TIME_MILLIS, System.currentTimeMillis() + 1000L));
+        log.info("sync send delay with deliver time millis: {}", sendResult);
+
+        sendResult = rocketTemplate.send(TopicTag.of(topic), PayloadSend.create(), null, new Delay(DelayMode.DELAY_MILLIS, 1000L));
+        log.info("sync send delay with delay millis: {}", sendResult);
+
+        sendResult = rocketTemplate.send(TopicTag.of(topic), PayloadSend.create(), null, new Delay(DelayMode.DELAY_SECONDS, 1L));
+        log.info("sync send delay with delay seconds: {}", sendResult);
+
+        sendResult = rocketTemplate.send(TopicTag.of(topic), PayloadSend.create(), null, new Delay(DelayMode.DELAY_LEVEL, 1L));
+        log.info("sync send delay with delay level: {}", sendResult);
+
+        Thread.sleep(5000);
+    }
+
+
+    @SneakyThrows
+    @Test
+    public void sendSequentialTest() {
+        String topic = "rocket-send-sequential";
+
+        IntStream.range(0, 5).boxed().forEach(i -> {
+            SendResult sendResult = rocketTemplate.send(TopicTag.of(topic), PayloadSend.create(String.valueOf(i)), "sharding-rocket-send-sequential", null);
+            log.info("sync send sequential with sharding key: {}", sendResult);
+        });
+
+        Thread.sleep(5000);
+    }
+
+
+    @SneakyThrows
+    @Test
     public void sendAsyncTest() {
         String topic = "rocket-send-simple";
 
-        Function<String, BiConsumer<SendResult, Throwable>> sendConsumer = prefix -> (sendResult, e) -> {
-            if (e == null) {
-                log.info(prefix + " success, result: {}", sendResult);
-            } else {
-                log.error(prefix + " fail", e);
-            }
-        };
-
         rocketTemplate.sendAsync(topic, PayloadSend.create(),
-                sendConsumer.apply("async send simple"));
+                SEND_CONSUMER.apply("async send simple"));
 
         rocketTemplate.sendAsync(new TopicTag(topic, "1"), PayloadSend.create(),
-                sendConsumer.apply("async send simple with tags"));
+                SEND_CONSUMER.apply("async send simple with tags"));
 
         Map<String, Object> headers = MapBuilder.builder()
                 .put(RocketHeaders.KEYS, "keys-rocket-send-simple")
                 .build();
         rocketTemplate.sendAsync(topic, PayloadSend.create(), () -> headers,
-                sendConsumer.apply("async send simple with header"));
+                SEND_CONSUMER.apply("async send simple with header"));
 
         rocketTemplate.sendAsync(topic, MessageBuilder.createMessage(PayloadSend.create(), new MessageHeaders(headers)),
-                sendConsumer.apply("async send simple messaging"));
+                SEND_CONSUMER.apply("async send simple messaging"));
 
         Thread.sleep(5000);
     }
@@ -128,17 +167,9 @@ public class SpringRocketTest {
     public void sendBatchAsyncTest() {
         String topic = "rocket-send-batch";
 
-        Function<String, BiConsumer<SendResult, Throwable>> sendConsumer = prefix -> (sendResult, e) -> {
-            if (e == null) {
-                log.info(prefix + " success, result: {}", sendResult);
-            } else {
-                log.error(prefix + " fail", e);
-            }
-        };
-
         List<PayloadSend> payloads = IntStream.range(0, 20).boxed().map(i -> PayloadSend.create()).toList();
         rocketTemplate.sendBatchAsync(TopicTag.of(topic), payloads,
-                sendConsumer.apply("async send batch simple"));
+                SEND_CONSUMER.apply("async send batch simple"));
 
         List<Message<PayloadSend>> messages = IntStream.range(0, 20).boxed().map(i -> {
             Map<String, Object> headers = MapBuilder.builder()
@@ -147,8 +178,55 @@ public class SpringRocketTest {
             return MessageBuilder.createMessage(PayloadSend.create(), new MessageHeaders(headers));
         }).toList();
         rocketTemplate.sendBatchAsync(topic, messages,
-                sendConsumer.apply("async send batch simple messaging"));
+                SEND_CONSUMER.apply("async send batch simple messaging"));
 
         Thread.sleep(5000);
+    }
+
+
+    @SneakyThrows
+    @Test
+    public void sendDelayAsyncTest() {
+        String topic = "rocket-send-delay";
+
+        rocketTemplate.sendAsync(TopicTag.of(topic), PayloadSend.create(), null, new Delay(DelayMode.DELIVER_TIME_MILLIS, System.currentTimeMillis() + 1000L),
+                SEND_CONSUMER.apply("async send delay with deliver time millis"));
+
+        rocketTemplate.sendAsync(TopicTag.of(topic), PayloadSend.create(), null, new Delay(DelayMode.DELAY_MILLIS, 1000L),
+                SEND_CONSUMER.apply("async send delay with delay millis"));
+
+        rocketTemplate.sendAsync(TopicTag.of(topic), PayloadSend.create(), null, new Delay(DelayMode.DELAY_SECONDS, 1L),
+                SEND_CONSUMER.apply("async send delay with delay seconds"));
+
+        rocketTemplate.sendAsync(TopicTag.of(topic), PayloadSend.create(), null, new Delay(DelayMode.DELAY_LEVEL, 1L),
+                SEND_CONSUMER.apply("async send delay with delay level"));
+
+        Thread.sleep(5000);
+    }
+
+    @SneakyThrows
+    @Test
+    public void sendSequentialAsyncTest() {
+        String topic = "rocket-send-sequential";
+
+        doSendSequentialAsync(topic, 0);
+
+        Thread.sleep(5000);
+    }
+
+    private void doSendSequentialAsync(String topic, int i) {
+        if (i >= 5) {
+            return;
+        }
+        rocketTemplate.sendAsync(TopicTag.of(topic), PayloadSend.create(String.valueOf(i)), "sharding-rocket-send-sequential", null,
+                (sendResult, e) -> {
+                    String prefix = "async send sequential with sharding key";
+                    if (e == null) {
+                        log.info(prefix + " success, result: {}", sendResult);
+                    } else {
+                        log.error(prefix + " fail", e);
+                    }
+                    doSendSequentialAsync(topic, i + 1);
+                });
     }
 }
