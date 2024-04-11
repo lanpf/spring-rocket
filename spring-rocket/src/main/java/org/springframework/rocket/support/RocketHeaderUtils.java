@@ -1,6 +1,9 @@
 package org.springframework.rocket.support;
 
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.springframework.rocket.core.Delay;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
@@ -108,5 +111,32 @@ public class RocketHeaderUtils {
         if (!ObjectUtils.isEmpty(headerValue)) {
             headers.put(RocketHeaders.TRANSACTION_ARG, headerValue);
         }
+    };
+
+    public static final BiConsumer<Map<String, Object>, Message> REPLY_HEADER_SET = (headers, requestMessage) -> {
+        if (requestMessage == null) {
+            return;
+        }
+        String type = MixAll.REPLY_MESSAGE_FLAG;
+        String correlationId = requestMessage.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
+        String replyTo = requestMessage.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT);
+        String ttl = requestMessage.getProperty(MessageConst.PROPERTY_MESSAGE_TTL);
+
+        headers.put(RocketHeaders.MESSAGE_TYPE, type);
+        headers.put(RocketHeaders.CORRELATION_ID, correlationId);
+        headers.put(RocketHeaders.MESSAGE_REPLY_TO_CLIENT, replyTo);
+        headers.put(RocketHeaders.MESSAGE_TTL, ttl);
+    };
+    public static final BiConsumer<Message, Map<String, Object>> REPLY_HEADER_GET = (replyMessage, springHeaders) -> {
+        String type = PropertiesUtils.extractAsString(header -> RocketHeaders.find(springHeaders, header), RocketHeaders.MESSAGE_TYPE);
+        String correlationId = PropertiesUtils.extractAsString(header -> RocketHeaders.find(springHeaders, header), RocketHeaders.CORRELATION_ID);
+        String replyTo = PropertiesUtils.extractAsString(header -> RocketHeaders.find(springHeaders, header), RocketHeaders.MESSAGE_REPLY_TO_CLIENT);
+        String ttl = PropertiesUtils.extractAsString(header -> RocketHeaders.find(springHeaders, header), RocketHeaders.MESSAGE_TTL);
+
+        JavaUtils.INSTANCE
+                .acceptIfHasText(type, value -> MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_MESSAGE_TYPE, value))
+                .acceptIfHasText(correlationId, value -> MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_CORRELATION_ID, value))
+                .acceptIfHasText(replyTo, value -> MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_MESSAGE_REPLY_TO_CLIENT, value))
+                .acceptIfHasText(ttl, value -> MessageAccessor.putProperty(replyMessage, MessageConst.PROPERTY_MESSAGE_TTL, value));
     };
 }

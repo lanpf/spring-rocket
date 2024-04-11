@@ -11,6 +11,7 @@ import org.springframework.beans.factory.config.BeanExpressionResolver;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.expression.BeanFactoryResolver;
 import org.springframework.expression.BeanResolver;
+import org.springframework.rocket.core.RocketTemplate;
 import org.springframework.rocket.listener.MessageListenerContainer;
 import org.springframework.rocket.listener.RocketMessageListenerContainer;
 import org.springframework.rocket.listener.adapter.AbstractRocketMessageListenerAdapter;
@@ -36,6 +37,8 @@ public abstract class AbstractRocketListenerEndpoint implements RocketListenerEn
     private Boolean concurrency;
 
     private Boolean autoStartup;
+
+    private RocketTemplate replyTemplate;
 
     private BeanFactory beanFactory;
 
