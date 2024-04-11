@@ -45,4 +45,9 @@ public interface RocketOperations {
         sendBatchAsync(topic, messages, null, sendConsumer);
     }
     <T extends Message<?>> void sendBatchAsync(String topic, List<T> messages, Long timeoutMillis, BiConsumer<SendResult, Throwable> sendConsumer);
+
+    /**
+     * send oneway spring message
+     */
+    void sendOneway(String topic, Message<?> message);
 }

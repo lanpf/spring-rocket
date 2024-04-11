@@ -265,6 +265,35 @@ public class RocketTemplate implements RocketOperations,
             this.producer.send(rocketMessages, callback, getSendTimeoutMillis(timeoutMillis));
         }
     }
+    /**
+     * --------------------    send oneway    --------------------
+     */
+    public void sendOneway(TopicTag topicTag, Object payload) {
+        sendOneway(topicTag, payload, null);
+    }
+    public void sendOneway(TopicTag topicTag, Object payload, String shardingKey) {
+        sendOneway(topicTag.topic(), payload, supplyHeaders(topicTag.tag(), shardingKey, null));
+    }
+    public void sendOneway(String topic, Object payload) {
+        sendOneway(topic, payload, null);
+    }
+    public void sendOneway(String topic, Object payload, Supplier<Map<String, Object>> headerSupplier) {
+        Message<?> message = buildMessage(payload, headerSupplier);
+        sendOneway(topic, message);
+    }
+    @SneakyThrows
+    @Override
+    public void sendOneway(String topic, Message<?> message) {
+        Message<?> converted = this.messageConverter.convert(message.getPayload(), message.getHeaders());
+        org.apache.rocketmq.common.message.Message rocketMessage = this.messageConverter.fromMessage(converted, topic);
+
+        Object shardingKey = RocketHeaders.find(message.getHeaders(), RocketHeaders.SHARDING_KEY);
+        if (!ObjectUtils.isEmpty(shardingKey)) {
+            this.producer.sendOneway(rocketMessage, this.messageQueueSelector, shardingKey);
+        } else {
+            this.producer.sendOneway(rocketMessage);
+        }
+    }
 
     private Message<?> buildMessage(Object payload, Supplier<Map<String, Object>> headerSupplier) {
         Message<?> message;
