@@ -16,6 +16,7 @@ public class ProducerProperties extends ClientProperties {
     public static final String RETRY_ANOTHER_BROKER = "retryAnotherBroker";
     public static final String MAX_SIZE = "maxSize";
     public static final String COMPRESS_THRESHOLD = "compressThreshold";
+    public static final String TRANSACTIONAL = "transactional";
 
     private Integer sendTimeoutMillis;
     private Integer syncRetries;
@@ -23,6 +24,7 @@ public class ProducerProperties extends ClientProperties {
     private Boolean retryAnotherBroker;
     private Integer maxSize;
     private Integer compressThreshold;
+    private Boolean transactional;
 
 
     public ProducerProperties(Map<String, Object> properties) {
@@ -36,5 +38,6 @@ public class ProducerProperties extends ClientProperties {
         this.retryAnotherBroker = PropertiesUtils.extractAsBoolean(properties, RETRY_ANOTHER_BROKER);
         this.maxSize = PropertiesUtils.extractAsInteger(properties, MAX_SIZE);
         this.compressThreshold = PropertiesUtils.extractAsInteger(properties, COMPRESS_THRESHOLD);
+        this.transactional = PropertiesUtils.extractAsBoolean(properties, TRANSACTIONAL);
     }
 }

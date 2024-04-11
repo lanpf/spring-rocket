@@ -31,6 +31,12 @@ public abstract class RocketHeaders {
      * --------------------    sharding header   --------------------
      */
      public static final String SHARDING_KEY = PREFIX + "SHARDING_KEY";
+    /**
+     * --------------------    transaction header   --------------------
+     */
+    public static final String TRANSACTION_ARG = PREFIX + "TRANSACTION_ARG";
+    public static final String TRANSACTION_ID = PREFIX + "TRANSACTION_ID";
+
 
     public static final String RECEIVED = PREFIX + "received_";
     /**
@@ -57,6 +63,11 @@ public abstract class RocketHeaders {
     public static final String RECEIVED_DELAY_MILLIS = RECEIVED + MessageConst.PROPERTY_TIMER_DELAY_MS;
     public static final String RECEIVED_DELAY_SECONDS = RECEIVED + MessageConst.PROPERTY_TIMER_DELAY_SEC;
     public static final String RECEIVED_DELAY_LEVEL = RECEIVED + MessageConst.PROPERTY_DELAY_TIME_LEVEL;
+    /**
+     * --------------------    received transaction header    --------------------
+     */
+    public static final String RECEIVED_TRANSACTION_ID = RECEIVED + "TRANSACTION_ID";
+
 
     public static String replacePrefix(String key) {
         return StringUtils.hasText(key) ? key.replaceFirst("^" + PREFIX, "") : null;

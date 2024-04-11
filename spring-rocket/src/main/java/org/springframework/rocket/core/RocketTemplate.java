@@ -3,10 +3,13 @@ package org.springframework.rocket.core;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.SneakyThrows;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.MQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.client.producer.TransactionMQProducer;
+import org.apache.rocketmq.client.producer.TransactionSendResult;
 import org.apache.rocketmq.client.producer.selector.SelectMessageQueueByHash;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.springframework.beans.BeansException;
@@ -17,11 +20,14 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.rocket.client.ProducerProperties;
 import org.springframework.rocket.client.RocketProducerFactory;
 import org.springframework.rocket.support.RocketHeaderUtils;
 import org.springframework.rocket.support.RocketHeaders;
+import org.springframework.rocket.support.RocketTransactionUtils;
 import org.springframework.rocket.support.converter.DefaultMessagingMessageConverter;
 import org.springframework.rocket.support.converter.MessagingMessageConverter;
+import org.springframework.rocket.transaction.RocketTransactionListener;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
@@ -29,13 +35,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Setter
-public class RocketTemplate implements RocketOperations,
+public class RocketTemplate implements RocketOperations, RocketTransactionOperations,
         ApplicationContextAware, SmartInitializingSingleton, InitializingBean, DisposableBean {
 
     protected MessagingMessageConverter messageConverter = new DefaultMessagingMessageConverter();
@@ -44,6 +52,9 @@ public class RocketTemplate implements RocketOperations,
     private final RocketProducerFactory producerFactory;
     private MQProducer producer;
     private Long sendTimeoutMillis = DEFAULT_SEND_TIMEOUT_MILLIS;
+
+    private final Map<String, MQProducer> transactionalProducers = new ConcurrentHashMap<>();
+    private ExecutorService transactionExecutor;
 
     /**
      *  Whether to record observations
@@ -89,6 +100,10 @@ public class RocketTemplate implements RocketOperations,
         if (this.producer != null) {
             this.producer.shutdown();
         }
+        if (!ObjectUtils.isEmpty(this.transactionalProducers)) {
+            this.transactionalProducers.values().forEach(MQProducer::shutdown);
+            this.transactionalProducers.clear();
+        }
     }
 
     @Override
@@ -97,6 +112,11 @@ public class RocketTemplate implements RocketOperations,
         if (this.producer != null) {
             this.producer.start();
         }
+    }
+
+    protected final ExecutorService getRequiredTransactionExecutor() {
+        Assert.state(this.transactionExecutor != null, "No 'transactionExecutor' set");
+        return this.transactionExecutor;
     }
 
     /**
@@ -293,6 +313,70 @@ public class RocketTemplate implements RocketOperations,
         } else {
             this.producer.sendOneway(rocketMessage);
         }
+    }
+    /**
+     * --------------------    transaction    --------------------
+     */
+    public TransactionSendResult sendInTransaction(TopicTag topicTag, Object payload, Object arg) {
+        return sendInTransaction(topicTag.topic(), payload, () -> {
+            Map<String, Object> headers = new HashMap<>(64);
+            RocketHeaderUtils.TAGS_HEADER_SET.accept(headers, topicTag.tag());
+            RocketHeaderUtils.TRANSACTION_ARG_HEADER_SET.accept(headers, arg);
+            return headers;
+        });
+    }
+    public TransactionSendResult sendInTransaction(String topic, Object payload, Object arg) {
+        return sendInTransaction(topic, payload, () -> {
+            Map<String, Object> headers = new HashMap<>(64);
+            RocketHeaderUtils.TRANSACTION_ARG_HEADER_SET.accept(headers, arg);
+            return headers;
+        });
+    }
+    public TransactionSendResult sendInTransaction(String topic, Object payload, Supplier<Map<String, Object>> headerSupplier) {
+        Message<?> message = buildMessage(payload, headerSupplier);
+        return sendInTransaction(topic, message);
+    }
+    @SneakyThrows
+    @Override
+    public TransactionSendResult sendInTransaction(String topic, Message<?> message) {
+        MQProducer producer = this.transactionalProducers.get(topic);
+        Assert.state(producer instanceof TransactionMQProducer, String.format("No producer for %s or producer does not support transactions", topic));
+
+        Message<?> converted = this.messageConverter.convert(message.getPayload(), message.getHeaders());
+        org.apache.rocketmq.common.message.Message rocketMessage = this.messageConverter.fromMessage(converted, topic);
+
+        Object transactionArg = RocketHeaders.find(message.getHeaders(), RocketHeaders.TRANSACTION_ARG);
+        return producer.sendMessageInTransaction(rocketMessage, transactionArg);
+    }
+
+    public void registerTransactional(String topic, RocketTransactionListener transactionListener) {
+        registerTransactional(topic, transactionListener, null);
+    }
+
+    public void registerTransactional(String topic, RocketTransactionListener transactionListener, Map<String, Object> producerProperties) {
+        doRegisterTransactional(topic, transactionListener, producerProperties);
+    }
+
+    private MQProducer doRegisterTransactional(String topic, RocketTransactionListener transactionListener, Map<String, Object> producerProperties) {
+        Assert.notNull(transactionListener, "transactionListener must not be null");
+
+        Map<String, Object> transactionalProperties = producerProperties == null ? new HashMap<>(64) : producerProperties;
+        transactionalProperties.put(ProducerProperties.TRANSACTIONAL, true);
+        return this.transactionalProducers.computeIfAbsent(topic, key -> {
+            MQProducer producer = this.producerFactory.create(transactionalProperties);
+
+            if (producer instanceof TransactionMQProducer transactionProducer) {
+                transactionProducer.setTransactionListener(RocketTransactionUtils.toTransactionListener(transactionListener, this.messageConverter::toMessage));
+                transactionProducer.setExecutorService(getRequiredTransactionExecutor());
+                try {
+                    transactionProducer.start();
+                } catch (MQClientException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            return producer;
+        });
     }
 
     private Message<?> buildMessage(Object payload, Supplier<Map<String, Object>> headerSupplier) {
