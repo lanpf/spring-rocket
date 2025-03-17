@@ -66,6 +66,10 @@ public @interface RocketListener {
      */
     boolean batch() default false;
 
+    String beanRef() default "__listener";
+
+    String[] properties() default {};
+
     /**
      * Set to true or false, to override the default setting in the container factory. May
      * be a property placeholder or SpEL expression that evaluates to a {@link Boolean} or
@@ -76,7 +80,5 @@ public @interface RocketListener {
      * @return true to consume concurrently, otherwise consume orderly
      */
     String concurrency() default "true";
-
-    String[] properties() default {};
 
 }

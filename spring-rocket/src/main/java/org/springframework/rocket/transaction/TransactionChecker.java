@@ -2,7 +2,7 @@ package org.springframework.rocket.transaction;
 
 import org.springframework.messaging.Message;
 
-public interface RocketTransactionChecker {
+public interface TransactionChecker {
 
-    TransactionResolution check(Message<?> message);
+    TransactionState check(Message<?> message);
 }

@@ -1,6 +1,6 @@
 package org.springframework.rocket.transaction;
 
-public enum TransactionResolution {
+public enum TransactionState {
     /**
      * @see org.apache.rocketmq.client.producer.LocalTransactionState#COMMIT_MESSAGE
      */

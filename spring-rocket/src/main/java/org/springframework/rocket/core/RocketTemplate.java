@@ -32,7 +32,7 @@ import org.springframework.rocket.support.RocketHeaders;
 import org.springframework.rocket.support.RocketTransactionUtils;
 import org.springframework.rocket.support.converter.DefaultMessagingMessageConverter;
 import org.springframework.rocket.support.converter.MessagingMessageConverter;
-import org.springframework.rocket.transaction.RocketTransactionListener;
+import org.springframework.rocket.transaction.TransactionListener;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
@@ -378,15 +378,15 @@ public class RocketTemplate implements RocketOperations, RocketTransactionOperat
         return producer.sendMessageInTransaction(rocketMessage, transactionArg);
     }
 
-    public void registerTransactional(String topic, RocketTransactionListener transactionListener) {
-        registerTransactional(topic, transactionListener, null);
+    public void registerTransactionListener(String topic, TransactionListener transactionListener) {
+        registerTransactionListener(topic, transactionListener, null);
     }
 
-    public void registerTransactional(String topic, RocketTransactionListener transactionListener, Map<String, Object> producerProperties) {
-        doRegisterTransactional(topic, transactionListener, producerProperties);
+    public void registerTransactionListener(String topic, TransactionListener transactionListener, Map<String, Object> producerProperties) {
+        doRegisterTransactionListener(topic, transactionListener, producerProperties);
     }
 
-    private MQProducer doRegisterTransactional(String topic, RocketTransactionListener transactionListener, Map<String, Object> producerProperties) {
+    private MQProducer doRegisterTransactionListener(String topic, TransactionListener transactionListener, Map<String, Object> producerProperties) {
         Assert.notNull(transactionListener, "transactionListener must not be null");
 
         Map<String, Object> transactionalProperties = producerProperties == null ? new HashMap<>(64) : producerProperties;
@@ -395,7 +395,7 @@ public class RocketTemplate implements RocketOperations, RocketTransactionOperat
             MQProducer producer = this.producerFactory.create(transactionalProperties);
 
             if (producer instanceof TransactionMQProducer transactionProducer) {
-                transactionProducer.setTransactionListener(RocketTransactionUtils.toTransactionListener(transactionListener, this.messageConverter::toMessage));
+                transactionProducer.setTransactionListener(RocketTransactionUtils.translate(transactionListener, this.messageConverter::toMessage));
                 transactionProducer.setExecutorService(getRequiredTransactionExecutor());
                 try {
                     transactionProducer.start();

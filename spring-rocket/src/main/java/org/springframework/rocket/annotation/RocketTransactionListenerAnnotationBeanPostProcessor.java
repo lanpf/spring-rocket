@@ -13,7 +13,7 @@ import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.rocket.core.RocketTemplate;
 import org.springframework.rocket.support.PropertiesUtils;
-import org.springframework.rocket.transaction.RocketTransactionListener;
+import org.springframework.rocket.transaction.TransactionListener;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 
 @Slf4j
-public class RocketTransactionalAnnotationBeanPostProcessor extends AbstractRocketAnnotationBeanExpressionResolver
+public class RocketTransactionListenerAnnotationBeanPostProcessor extends AbstractRocketAnnotationBeanExpressionResolver
         implements BeanPostProcessor, Ordered, InitializingBean {
 
     private final Set<Class<?>> nonAnnotatedClasses = Collections.newSetFromMap(new ConcurrentHashMap<>(64));
@@ -48,33 +48,33 @@ public class RocketTransactionalAnnotationBeanPostProcessor extends AbstractRock
         if (!this.nonAnnotatedClasses.contains(bean.getClass())) {
             Class<?> targetClass = AopUtils.getTargetClass(bean);
 
-            RocketTransactional listener = findAnnotation(targetClass);
+            RocketTransactionListener listener = findListenerAnnotation(targetClass);
             if (listener == null) {
                 this.nonAnnotatedClasses.add(bean.getClass());
-                log.trace("No @{} annotations found on bean type: {}", RocketTransactional.class.getSimpleName(), bean.getClass());
+                log.trace("No @{} annotations found on bean type: {}", RocketTransactionListener.class.getSimpleName(), bean.getClass());
             } else {
-                processRocketTransactional(listener, bean, beanName);
-                log.debug("@{} classes processed on bean '{}': {}", RocketTransactional.class.getSimpleName(), beanName, listener);
+                processRocketTransaction(listener, bean, beanName);
+                log.debug("@{} classes processed on bean '{}': {}", RocketTransactionListener.class.getSimpleName(), beanName, listener);
             }
         }
         return bean;
     }
 
-    protected void processRocketTransactional(RocketTransactional rocketTransactional, Object bean, String beanName) {
-        Assert.isAssignable(RocketTransactionListener.class, bean.getClass());
+    protected void processRocketTransaction(RocketTransactionListener rocketTransactionListener, Object bean, String beanName) {
+        Assert.isAssignable(TransactionListener.class, bean.getClass());
 
-        RocketTemplate rocketTemplate = resolveRocketTemplate(rocketTransactional, resolve(rocketTransactional.rocketTemplate()), beanName);
+        RocketTemplate rocketTemplate = resolveRocketTemplate(rocketTransactionListener, resolve(rocketTransactionListener.rocketTemplate()), beanName);
         Assert.state(rocketTemplate != null, "No rocketTemplate found");
 
-        String topic = resolveExpressionAsString(rocketTransactional.topic(), "topic");
+        String topic = resolveExpressionAsString(rocketTransactionListener.topic(), "topic");
         Assert.hasText(topic, "topic must not be null or empty");
 
-        Properties properties = resolveProperties(rocketTransactional.properties());
-        rocketTemplate.registerTransactional(topic, (RocketTransactionListener) bean, PropertiesUtils.asMap(properties));
+        Properties properties = resolveProperties(rocketTransactionListener.properties());
+        rocketTemplate.registerTransactionListener(topic, (TransactionListener) bean, PropertiesUtils.asMap(properties));
     }
 
-    private RocketTemplate resolveRocketTemplate(RocketTransactional rocketTransactional, Object target, String beanName) {
-        String rocketTemplate = rocketTransactional.rocketTemplate();
+    private RocketTemplate resolveRocketTemplate(RocketTransactionListener rocketTransactionListener, Object target, String beanName) {
+        String rocketTemplate = rocketTransactionListener.rocketTemplate();
         if (!StringUtils.hasText(rocketTemplate)) {
             return null;
         }
@@ -103,12 +103,17 @@ public class RocketTransactionalAnnotationBeanPostProcessor extends AbstractRock
         return template;
     }
 
+
+    private void assertBeanFactory() {
+        Assert.state(this.beanFactory != null, "BeanFactory must be set to obtain rocket template by bean name");
+    }
+
     /**
      * AnnotationUtils.getRepeatableAnnotations does not look at interfaces
-     * @param clazz class with {@link RocketTransactional} annotation
+     * @param clazz class with {@link RocketTransactionListener} annotation
      */
-    private RocketTransactional findAnnotation(Class<?> clazz) {
-        RocketTransactional ann = AnnotatedElementUtils.findMergedAnnotation(clazz, RocketTransactional.class);
+    private RocketTransactionListener findListenerAnnotation(Class<?> clazz) {
+        RocketTransactionListener ann = AnnotatedElementUtils.findMergedAnnotation(clazz, RocketTransactionListener.class);
         if (ann != null) {
             ann = enhance(clazz, ann);
         }
@@ -116,13 +121,13 @@ public class RocketTransactionalAnnotationBeanPostProcessor extends AbstractRock
     }
 
 
-    private RocketTransactional enhance(AnnotatedElement element, RocketTransactional ann) {
+    private RocketTransactionListener enhance(AnnotatedElement element, RocketTransactionListener ann) {
         if (this.enhancer == null) {
             return ann;
         }
         else {
             return AnnotationUtils.synthesizeAnnotation(
-                    this.enhancer.apply(AnnotationUtils.getAnnotationAttributes(ann), element), RocketTransactional.class, null);
+                    this.enhancer.apply(AnnotationUtils.getAnnotationAttributes(ann), element), RocketTransactionListener.class, null);
         }
     }
 

@@ -62,16 +62,20 @@ public class RocketListenerAnnotationBeanPostProcessor extends AbstractRocketAnn
     public static final String DEFAULT_ROCKET_LISTENER_CONTAINER_FACTORY_BEAN_NAME = "rocketListenerContainerFactory";
     private static final String GENERATED_ID_PREFIX = "org.springframework.rocket.RocketListenerEndpointContainer#";
 
+    private final Set<Class<?>> nonAnnotatedClasses = Collections.newSetFromMap(new ConcurrentHashMap<>(64));
+    private final ListenerScope listenerScope = new ListenerScope();
+
+    private final GenericListenerEndpointRegistrar registrar = new GenericListenerEndpointRegistrar();
+    private final AtomicInteger counter = new AtomicInteger();
+    private final RocketHandlerMethodFactoryAdapter messageHandlerMethodFactory = new RocketHandlerMethodFactoryAdapter();
+
     @Setter
     private RocketListenerEndpointRegistry endpointRegistry;
     @Setter
     private String defaultContainerFactoryBeanName = DEFAULT_ROCKET_LISTENER_CONTAINER_FACTORY_BEAN_NAME;
     @Setter
     private Charset charset = StandardCharsets.UTF_8;
-    private final GenericListenerEndpointRegistrar registrar = new GenericListenerEndpointRegistrar();
-    private final Set<Class<?>> nonAnnotatedClasses = Collections.newSetFromMap(new ConcurrentHashMap<>(64));
-    private final AtomicInteger counter = new AtomicInteger();
-    private final RocketHandlerMethodFactoryAdapter messageHandlerMethodFactory = new RocketHandlerMethodFactoryAdapter();
+
     private AnnotationEnhancer enhancer;
 
     /**
@@ -100,6 +104,8 @@ public class RocketListenerAnnotationBeanPostProcessor extends AbstractRocketAnn
     @Override
     public void afterSingletonsInstantiated() {
         this.registrar.setBeanFactory(this.beanFactory);
+        Assert.state(this.beanFactory != null,
+                "BeanFactory must be set to find configurer by bean provider");
         this.beanFactory.getBeanProvider(RocketListenerConfigurer.class)
                 .forEach(configurer -> configurer.configureRocketListeners(this.registrar));
         if (this.registrar.getEndpointRegistry() == null) {
@@ -175,13 +181,16 @@ public class RocketListenerAnnotationBeanPostProcessor extends AbstractRocketAnn
         MethodRocketListenerEndpoint endpoint = new MethodRocketListenerEndpoint();
         endpoint.setMethod(methodToUse);
 
+        String beanRef = rocketListener.beanRef();
+        this.listenerScope.addListener(beanRef, bean);
         processListener(endpoint, rocketListener, bean, beanName);
+        this.listenerScope.removeListener(beanRef);
     }
 
     protected void processListener(MethodRocketListenerEndpoint endpoint, RocketListener rocketListener, Object bean, String beanName) {
         processRocketListenerAnnotation(endpoint, rocketListener, bean);
-        RocketListenerContainerFactory listenerContainerFactory = resolveContainerFactory(rocketListener, resolve(rocketListener.containerFactory()), beanName);
-
+        String containerFactory = resolve(rocketListener.containerFactory());
+        RocketListenerContainerFactory listenerContainerFactory = resolveContainerFactory(rocketListener, containerFactory, beanName);
         this.registrar.registerEndpoint(endpoint, listenerContainerFactory);
     }
 
@@ -251,9 +260,17 @@ public class RocketListenerAnnotationBeanPostProcessor extends AbstractRocketAnn
         return factory;
     }
 
+    private void assertBeanFactory() {
+        Assert.state(this.beanFactory != null, "BeanFactory must be set to obtain container factory by bean name");
+    }
+
     private void processRocketListenerAnnotation(MethodRocketListenerEndpoint endpoint, RocketListener rocketListener, Object bean) {
         endpoint.setBean(bean);
         endpoint.setMessageHandlerMethodFactory(this.messageHandlerMethodFactory);
+
+        endpoint.setId(getEndpointId(rocketListener));
+        endpoint.setGroupId(resolveExpressionAsString(rocketListener.groupId(), "groupId"));
+
         // subscription
         endpoint.setTopic(resolveExpressionAsString(rocketListener.topic(), "topic"));
         String filterExpression = resolveExpressionAsString(rocketListener.filterExpression(), "filterExpression");
@@ -263,9 +280,6 @@ public class RocketListenerAnnotationBeanPostProcessor extends AbstractRocketAnn
         if (rocketListener.filterExpressionType() != null) {
             endpoint.setFilterExpressionType(rocketListener.filterExpressionType().name());
         }
-
-        endpoint.setId(getEndpointId(rocketListener));
-        endpoint.setGroupId(resolveExpressionAsString(rocketListener.groupId(), "groupId"));
 
         String concurrency = rocketListener.concurrency();
         if (StringUtils.hasText(concurrency)) {
@@ -280,13 +294,6 @@ public class RocketListenerAnnotationBeanPostProcessor extends AbstractRocketAnn
         endpoint.setBatchListener(rocketListener.batch());
 //        endpoint.setAckMode(rocketListener.ackMode());
         endpoint.setBeanFactory(this.beanFactory);
-    }
-
-    private void addFormatters(FormatterRegistry registry) {
-        this.beanFactory.getBeanProvider(Converter.class).forEach(registry::addConverter);
-        this.beanFactory.getBeanProvider(ConverterFactory.class).forEach(registry::addConverterFactory);
-        this.beanFactory.getBeanProvider(GenericConverter.class).forEach(registry::addConverter);
-        this.beanFactory.getBeanProvider(Formatter.class).forEach(registry::addFormatter);
     }
 
     private void resolveRocketProperties(MethodRocketListenerEndpoint endpoint, String[] propertyStrings) {
@@ -353,6 +360,13 @@ public class RocketListenerAnnotationBeanPostProcessor extends AbstractRocketAnn
             return AnnotationUtils.synthesizeAnnotation(
                     this.enhancer.apply(AnnotationUtils.getAnnotationAttributes(ann), element), RocketListener.class, null);
         }
+    }
+
+    private void addFormatters(FormatterRegistry registry) {
+        this.beanFactory.getBeanProvider(Converter.class).forEach(registry::addConverter);
+        this.beanFactory.getBeanProvider(ConverterFactory.class).forEach(registry::addConverterFactory);
+        this.beanFactory.getBeanProvider(GenericConverter.class).forEach(registry::addConverter);
+        this.beanFactory.getBeanProvider(Formatter.class).forEach(registry::addFormatter);
     }
 
     protected class RocketHandlerMethodFactoryAdapter implements MessageHandlerMethodFactory {
@@ -477,7 +491,6 @@ public class RocketListenerAnnotationBeanPostProcessor extends AbstractRocketAnn
             }
         }
     }
-
 
     public interface AnnotationEnhancer extends BiFunction<Map<String, Object>, AnnotatedElement, Map<String, Object>> {
 
