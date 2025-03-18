@@ -8,15 +8,12 @@ import org.springframework.util.Assert;
 import java.util.concurrent.locks.ReentrantLock;
 
 @RequiredArgsConstructor
-@Getter
-@Setter
 public non-sealed abstract class AbstractRocketMessageListenerContainer extends AbstractContainer
         implements RocketMessageListenerContainer {
-
+    @Getter
     protected final ContainerProperties containerProperties;
-
     protected final ReentrantLock lifecycleLock = new ReentrantLock();
-
+    @Setter
     protected volatile boolean paused;
 
     @Override
