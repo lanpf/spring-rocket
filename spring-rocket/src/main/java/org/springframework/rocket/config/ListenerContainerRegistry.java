@@ -1,4 +1,6 @@
-package org.springframework.rocket.listener;
+package org.springframework.rocket.config;
+
+import org.springframework.rocket.listener.MessageListenerContainer;
 
 import java.util.Collection;
 import java.util.Set;

@@ -11,7 +11,6 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.event.ContextRefreshedEvent;
-import org.springframework.rocket.listener.ListenerContainerRegistry;
 import org.springframework.rocket.listener.MessageListenerContainer;
 import org.springframework.util.Assert;
 
