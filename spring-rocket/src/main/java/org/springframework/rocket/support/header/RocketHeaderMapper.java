@@ -1,6 +1,7 @@
 package org.springframework.rocket.support.header;
 
 import org.apache.rocketmq.common.message.Message;
+import org.springframework.messaging.MessageHeaders;
 
 import java.util.Map;
 
@@ -11,10 +12,10 @@ public interface RocketHeaderMapper {
      * <p>
      * Commonly used in the outbound flow when a Spring message is being converted to a
      * Pulsar message in order to be written out to Pulsar topic (outbound).
-     * @param springHeaders the map of Spring messaging headers
+     * @param headers the Spring messaging headers
      * @param rocketMessage the Rocket message
      */
-    void fromSpringHeaders(Map<String, Object> springHeaders, Message rocketMessage);
+    void fromHeaders(MessageHeaders headers, Message rocketMessage);
 
     /**
      * Map the headers from the given Rocket message to Spring Messaging headers.
@@ -22,8 +23,8 @@ public interface RocketHeaderMapper {
      * Commonly used in the inbound flow when an incoming Pulsar message is being
      * converted to a Spring message.
      * @param rocketMessage the Rocket message containing the headers to map
-     * @param springHeaders the map of Spring messaging headers
+     * @param headers the map of Spring messaging headers
      */
-    void toSpringHeaders(Message rocketMessage, Map<String, Object> springHeaders);
+    void toHeaders(Message rocketMessage, Map<String, Object> headers);
 
 }

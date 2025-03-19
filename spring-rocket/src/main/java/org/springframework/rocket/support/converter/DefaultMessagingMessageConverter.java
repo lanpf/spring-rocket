@@ -83,7 +83,7 @@ public class DefaultMessagingMessageConverter implements MessagingMessageConvert
     @Override
     public org.springframework.messaging.Message<?> toMessage(Message rocketMessage, Type payloadType) {
         Map<String, Object> headers = new HashMap<>(64);
-        this.headerMapper.toSpringHeaders(rocketMessage, headers);
+        this.headerMapper.toHeaders(rocketMessage, headers);
         headers.putIfAbsent(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.TEXT_PLAIN);
 
         org.springframework.messaging.Message<?> message = MessageBuilder.createMessage(extractAndConvertValue(rocketMessage, payloadType), new MessageHeaders(headers));
@@ -123,7 +123,7 @@ public class DefaultMessagingMessageConverter implements MessagingMessageConvert
         }
 
         Message rocketMessage = new Message(topic, payload);
-        this.headerMapper.fromSpringHeaders(springMessage.getHeaders(), rocketMessage);
+        this.headerMapper.fromHeaders(springMessage.getHeaders(), rocketMessage);
         return rocketMessage;
     }
 
