@@ -24,9 +24,10 @@ public class DefaultRocketPullConsumerFactory implements RocketPullConsumerFacto
 
     @Override
     public LitePullConsumer create(Map<String, Object> overrideProperties) {
-        PullConsumerProperties consumerProperties = new PullConsumerProperties(PropertiesUtils.asMap(properties, overrideProperties));
+        Map<String, Object> finalProperties = PropertiesUtils.asMap(properties, overrideProperties);
         String group = PropertiesUtils.extractAsString(overrideProperties, ClientProperties.GROUP_ID);
-
+        
+        PullConsumerProperties consumerProperties = new PullConsumerProperties(finalProperties);
         boolean aclEnabled = StringUtils.hasText(consumerProperties.getAccessKey()) && StringUtils.hasText(consumerProperties.getSecretKey());
         RPCHook rpcHook = aclEnabled ? new AclClientRPCHook(new SessionCredentials(consumerProperties.getAccessKey(), consumerProperties.getSecretKey())) : null;
         DefaultLitePullConsumer consumer = new DefaultLitePullConsumer(group, rpcHook);

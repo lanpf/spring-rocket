@@ -24,9 +24,10 @@ public class DefaultRocketPushConsumerFactory implements RocketPushConsumerFacto
 
     @Override
     public MQPushConsumer create(Map<String, Object> overrideProperties) {
-        PushConsumerProperties consumerProperties = new PushConsumerProperties(PropertiesUtils.asMap(properties, overrideProperties));
-
+        Map<String, Object> finalProperties = PropertiesUtils.asMap(properties, overrideProperties);
         String group = PropertiesUtils.extractAsString(overrideProperties, ClientProperties.GROUP_ID);
+
+        PushConsumerProperties consumerProperties = new PushConsumerProperties(finalProperties);
         boolean aclEnabled = StringUtils.hasText(consumerProperties.getAccessKey()) && StringUtils.hasText(consumerProperties.getSecretKey());
         RPCHook rpcHook = aclEnabled ? new AclClientRPCHook(new SessionCredentials(consumerProperties.getAccessKey(), consumerProperties.getSecretKey())) : null;
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(

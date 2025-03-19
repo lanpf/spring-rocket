@@ -11,6 +11,7 @@ import org.springframework.rocket.support.JavaUtils;
 import org.springframework.rocket.support.PropertiesUtils;
 import org.springframework.util.StringUtils;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -25,9 +26,10 @@ public class DefaultRocketProducerFactory implements RocketProducerFactory {
 
     @Override
     public MQProducer create(Map<String, Object> overrideProperties) {
-        ProducerProperties producerProperties = new ProducerProperties(PropertiesUtils.asMap(properties, overrideProperties));
+        Map<String, Object> finalProperties = PropertiesUtils.asMap(properties, overrideProperties);
+        String group = PropertiesUtils.extractAsString(finalProperties, ClientProperties.GROUP_ID);
 
-        String group = PropertiesUtils.extractAsString(overrideProperties, ClientProperties.GROUP_ID);
+        ProducerProperties producerProperties = new ProducerProperties(finalProperties);
         boolean aclEnabled = StringUtils.hasText(producerProperties.getAccessKey()) && StringUtils.hasText(producerProperties.getSecretKey());
         RPCHook rpcHook = aclEnabled ? new AclClientRPCHook(new SessionCredentials(producerProperties.getAccessKey(), producerProperties.getSecretKey())) : null;
         DefaultMQProducer producer;
