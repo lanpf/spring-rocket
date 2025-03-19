@@ -130,25 +130,7 @@ public class PropertiesUtils {
 
 
     public static Map<String, Object> asMap(Properties properties, Properties overrideProperties) {
-        return asMap(asMap(properties), overrideProperties);
-    }
-
-    public static Map<String, Object> asMap(Properties properties, Map<String, Object> overrideProperties) {
-        return asMap(asMap(properties), overrideProperties);
-    }
-
-    public static Map<String, Object> asMap(Map<String, Object> properties, Properties overrideProperties) {
-        if (ObjectUtils.isEmpty(properties) && ObjectUtils.isEmpty(overrideProperties)) {
-            return new HashMap<>(64);
-        }
-        if (ObjectUtils.isEmpty(overrideProperties)) {
-            return new HashMap<>(properties);
-        }
-        Map<String, Object> map = asMap(overrideProperties);
-        if (!ObjectUtils.isEmpty(properties)) {
-            properties.forEach(map::putIfAbsent);
-        }
-        return map;
+        return asMap(asMap(properties), asMap(overrideProperties));
     }
 
     public static Map<String, Object> asMap(Map<String, Object> properties, Map<String, Object> overrideProperties) {
@@ -161,7 +143,11 @@ public class PropertiesUtils {
 
         Map<String, Object> map = new HashMap<>(overrideProperties);
         if (!ObjectUtils.isEmpty(properties)) {
-            properties.forEach(map::putIfAbsent);
+            properties.forEach((k, v) -> {
+                if (!ObjectUtils.isEmpty(v)) {
+                    map.put(k, v);
+                }
+            });
         }
         return map;
     }

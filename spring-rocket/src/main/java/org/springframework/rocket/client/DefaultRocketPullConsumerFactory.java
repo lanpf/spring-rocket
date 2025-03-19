@@ -1,6 +1,5 @@
 package org.springframework.rocket.client;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
@@ -15,19 +14,18 @@ import java.util.Map;
 import java.util.Properties;
 
 @RequiredArgsConstructor
-@Getter
 public class DefaultRocketPullConsumerFactory implements RocketPullConsumerFactory {
 
-    private final Map<String, Object> defaultProperties;
+    private final Map<String, Object> properties;
 
-    public DefaultRocketPullConsumerFactory(Properties defaultProperties) {
-        this(PropertiesUtils.asMap(defaultProperties));
+    public DefaultRocketPullConsumerFactory(Properties properties) {
+        this(PropertiesUtils.asMap(properties));
     }
 
     @Override
-    public LitePullConsumer create(String groupId, Map<String, Object> overrideProperties) {
-        String group = getGroupId(groupId, overrideProperties);
-        PullConsumerProperties consumerProperties = new PullConsumerProperties(PropertiesUtils.asMap(getDefaultProperties(), overrideProperties));
+    public LitePullConsumer create(Map<String, Object> overrideProperties) {
+        PullConsumerProperties consumerProperties = new PullConsumerProperties(PropertiesUtils.asMap(properties, overrideProperties));
+        String group = PropertiesUtils.extractAsString(overrideProperties, ClientProperties.GROUP_ID);
 
         boolean aclEnabled = StringUtils.hasText(consumerProperties.getAccessKey()) && StringUtils.hasText(consumerProperties.getSecretKey());
         RPCHook rpcHook = aclEnabled ? new AclClientRPCHook(new SessionCredentials(consumerProperties.getAccessKey(), consumerProperties.getSecretKey())) : null;
@@ -41,7 +39,8 @@ public class DefaultRocketPullConsumerFactory implements RocketPullConsumerFacto
                 .acceptIfNotNull(consumerProperties.getTraceEnabled(), consumer::setEnableMsgTrace)
                 .acceptIfHasText(consumerProperties.getCustomizedTraceTopic(), consumer::setCustomizedTraceTopic)
 
-                .acceptIfHasText(consumerProperties.getNamespace(), consumer::setNamespace)
+//                .acceptIfHasText(consumerProperties.getNamespace(), consumer::setNamespace)
+                .acceptIfHasText(consumerProperties.getNamespace(), consumer::setNamespaceV2)
                 .acceptIfHasText(consumerProperties.getInstanceName(), consumer::setInstanceName)
                 .acceptIfHasText(consumerProperties.getNameServer(), consumer::setNamesrvAddr)
                 .acceptIfNotNull(consumerProperties.getTlsEnabled(), consumer::setUseTLS)

@@ -45,7 +45,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -150,8 +149,7 @@ public class RocketListenerAnnotationBeanPostProcessor extends AbstractRocketAnn
 //            final List<Method> multiMethods = new ArrayList<>();
 //            if (hasClassLevelListeners) {
 //                Set<Method> methodsWithHandler = MethodIntrospector.selectMethods(targetClass,
-//                        (ReflectionUtils.MethodFilter) method ->
-//                                AnnotationUtils.findAnnotation(method, RocketListener.class) != null);
+//                        (ReflectionUtils.MethodFilter) method -> AnnotationUtils.findAnnotation(method, RocketHandler.class) != null);
 //                multiMethods.addAll(methodsWithHandler);
 //            }
 //            if (annotatedMethods.isEmpty() && !hasClassLevelListeners) {
@@ -313,46 +311,25 @@ public class RocketListenerAnnotationBeanPostProcessor extends AbstractRocketAnn
 
     /**
      * AnnotationUtils.getRepeatableAnnotations does not look at interfaces
-     * @param clazz class with {@link RocketListener} annotation
+     * @param element element with {@link RocketListener} annotation
      */
-    private Collection<RocketListener> findListenerAnnotations(Class<?> clazz) {
+    private Set<RocketListener> findListenerAnnotations(AnnotatedElement element) {
         Set<RocketListener> listeners = new HashSet<>();
-        RocketListener ann = AnnotatedElementUtils.findMergedAnnotation(clazz, RocketListener.class);
+        RocketListener ann = AnnotatedElementUtils.findMergedAnnotation(element, RocketListener.class);
         if (ann != null) {
-            ann = enhance(clazz, ann);
+            ann = enhance(element, ann);
             listeners.add(ann);
         }
-        RocketListeners anns = AnnotationUtils.findAnnotation(clazz, RocketListeners.class);
+        RocketListeners anns = AnnotationUtils.findAnnotation(element, RocketListeners.class);
         if (anns != null) {
             listeners.addAll(Arrays.stream(anns.value())
-                    .map(anno -> enhance(clazz, anno))
+                    .map(anno -> enhance(element, anno))
                     .toList());
         }
         return listeners;
     }
 
-
-    /**
-     * AnnotationUtils.getRepeatableAnnotations does not look at interfaces
-     * @param method method with {@link RocketListener} annotation
-     */
-    private Set<RocketListener> findListenerAnnotations(Method method) {
-        Set<RocketListener> listeners = new HashSet<>();
-        RocketListener ann = AnnotatedElementUtils.findMergedAnnotation(method, RocketListener.class);
-        if (ann != null) {
-            ann = enhance(method, ann);
-            listeners.add(ann);
-        }
-        RocketListeners anns = AnnotationUtils.findAnnotation(method, RocketListeners.class);
-        if (anns != null) {
-            listeners.addAll(Arrays.stream(anns.value())
-                    .map(anno -> enhance(method, anno))
-                    .toList());
-        }
-        return listeners;
-    }
-
-    private RocketListener enhance(AnnotatedElement element, RocketListener ann) {
+    protected RocketListener enhance(AnnotatedElement element, RocketListener ann) {
         if (this.enhancer == null) {
             return ann;
         }

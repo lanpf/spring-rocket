@@ -8,6 +8,7 @@ import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAverage
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueByConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueByMachineRoom;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueConsistentHash;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.springframework.rocket.support.PropertiesUtils;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
@@ -16,8 +17,8 @@ import java.util.Map;
 
 @Getter
 @Setter
-public class PushConsumerProperties extends ConsumerProperties {
-
+public class PushConsumerProperties extends ClientProperties {
+    public static final String MESSAGE_MODEL = "messageModel";
     public static final String PULL_BATCH_SIZE = "pullBatchSize";
     public static final String ALLOCATE_MESSAGE_QUEUE_STRATEGY = "allocateMessageQueueStrategy";
     public static final String MIN_CONSUME_THREADS = "minConsumeThreads";
@@ -30,6 +31,7 @@ public class PushConsumerProperties extends ConsumerProperties {
     public static final String SUSPEND_CURRENT_QUEUE_TIME_MILLIS = "suspendCurrentQueueTimeMillis";
     public static final String RETRY_DELAY_LEVEL = "retryDelayLevel";
 
+    private MessageModel messageModel;
     private Integer pullBatchSize;
     private AllocateMessageQueueStrategy allocateMessageQueueStrategy;
     private Integer minConsumeThreads;
@@ -38,7 +40,6 @@ public class PushConsumerProperties extends ConsumerProperties {
     private Integer consumeBatchSize;
     private Long shutdownAwaitTerminationMillis;
     private Integer retries;
-
 
     private Long suspendCurrentQueueTimeMillis;
     private Integer retryDelayLevel;
@@ -50,6 +51,7 @@ public class PushConsumerProperties extends ConsumerProperties {
         if (ObjectUtils.isEmpty(properties)) {
             return;
         }
+        this.messageModel = PropertiesUtils.extractAsEnum(properties, MESSAGE_MODEL, MessageModel.class);
         this.pullBatchSize = PropertiesUtils.extractAsInteger(properties, PULL_BATCH_SIZE);
         this.minConsumeThreads = PropertiesUtils.extractAsInteger(properties, MIN_CONSUME_THREADS);
         this.maxConsumeThreads = PropertiesUtils.extractAsInteger(properties, MAX_CONSUME_THREADS);

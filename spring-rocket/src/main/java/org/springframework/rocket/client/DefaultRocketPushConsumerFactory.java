@@ -1,6 +1,5 @@
 package org.springframework.rocket.client;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
@@ -15,20 +14,19 @@ import java.util.Map;
 import java.util.Properties;
 
 @RequiredArgsConstructor
-@Getter
 public class DefaultRocketPushConsumerFactory implements RocketPushConsumerFactory {
 
-    private final Map<String, Object> defaultProperties;
+    private final Map<String, Object> properties;
 
-    public DefaultRocketPushConsumerFactory(Properties defaultProperties) {
-        this(PropertiesUtils.asMap(defaultProperties));
+    public DefaultRocketPushConsumerFactory(Properties properties) {
+        this(PropertiesUtils.asMap(properties));
     }
 
     @Override
-    public MQPushConsumer create(String groupId,  Map<String, Object> overrideProperties) {
-        String group = getGroupId(groupId, overrideProperties);
-        PushConsumerProperties consumerProperties = new PushConsumerProperties(PropertiesUtils.asMap(getDefaultProperties(), overrideProperties));
+    public MQPushConsumer create(Map<String, Object> overrideProperties) {
+        PushConsumerProperties consumerProperties = new PushConsumerProperties(PropertiesUtils.asMap(properties, overrideProperties));
 
+        String group = PropertiesUtils.extractAsString(overrideProperties, ClientProperties.GROUP_ID);
         boolean aclEnabled = StringUtils.hasText(consumerProperties.getAccessKey()) && StringUtils.hasText(consumerProperties.getSecretKey());
         RPCHook rpcHook = aclEnabled ? new AclClientRPCHook(new SessionCredentials(consumerProperties.getAccessKey(), consumerProperties.getSecretKey())) : null;
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(
@@ -44,7 +42,8 @@ public class DefaultRocketPushConsumerFactory implements RocketPushConsumerFacto
         }
 
         JavaUtils.INSTANCE
-                .acceptIfHasText(consumerProperties.getNamespace(), consumer::setNamespace)
+//                .acceptIfHasText(consumerProperties.getNamespace(), consumer::setNamespace)
+                .acceptIfHasText(consumerProperties.getNamespace(), consumer::setNamespaceV2)
                 .acceptIfHasText(consumerProperties.getInstanceName(), consumer::setInstanceName)
                 .acceptIfHasText(consumerProperties.getNameServer(), consumer::setNamesrvAddr)
                 .acceptIfNotNull(consumerProperties.getTlsEnabled(), consumer::setUseTLS)

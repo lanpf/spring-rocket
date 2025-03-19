@@ -1,6 +1,5 @@
 package org.springframework.rocket.client;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
@@ -16,20 +15,19 @@ import java.util.Map;
 import java.util.Properties;
 
 @RequiredArgsConstructor
-@Getter
 public class DefaultRocketProducerFactory implements RocketProducerFactory {
 
-    private final Map<String, Object> defaultProperties;
+    private final Map<String, Object> properties;
 
-    public DefaultRocketProducerFactory(Properties defaultProperties) {
-        this(PropertiesUtils.asMap(defaultProperties));
+    public DefaultRocketProducerFactory(Properties prop) {
+        this.properties = PropertiesUtils.asMap(prop);
     }
 
     @Override
-    public MQProducer create(String groupId, Map<String, Object> overrideProperties) {
-        String group = getGroupId(groupId, overrideProperties);
-        ProducerProperties producerProperties = new ProducerProperties(PropertiesUtils.asMap(getDefaultProperties(), overrideProperties));
+    public MQProducer create(Map<String, Object> overrideProperties) {
+        ProducerProperties producerProperties = new ProducerProperties(PropertiesUtils.asMap(properties, overrideProperties));
 
+        String group = PropertiesUtils.extractAsString(overrideProperties, ClientProperties.GROUP_ID);
         boolean aclEnabled = StringUtils.hasText(producerProperties.getAccessKey()) && StringUtils.hasText(producerProperties.getSecretKey());
         RPCHook rpcHook = aclEnabled ? new AclClientRPCHook(new SessionCredentials(producerProperties.getAccessKey(), producerProperties.getSecretKey())) : null;
         DefaultMQProducer producer;
@@ -55,7 +53,8 @@ public class DefaultRocketProducerFactory implements RocketProducerFactory {
 
 
         JavaUtils.INSTANCE
-                .acceptIfHasText(producerProperties.getNamespace(), producer::setNamespace)
+//                .acceptIfHasText(producerProperties.getNamespace(), producer::setNamespace)
+                .acceptIfHasText(producerProperties.getNamespace(), producer::setNamespaceV2)
                 .acceptIfHasText(producerProperties.getInstanceName(), producer::setInstanceName)
                 .acceptIfHasText(producerProperties.getNameServer(), producer::setNamesrvAddr)
                 .acceptIfNotNull(producerProperties.getTlsEnabled(), producer::setUseTLS)
