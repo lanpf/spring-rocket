@@ -7,6 +7,7 @@ import org.apache.rocketmq.client.consumer.MQPushConsumer;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.springframework.rocket.client.ClientProperties;
 import org.springframework.rocket.client.PushConsumerProperties;
 import org.springframework.rocket.client.RocketPushConsumerFactory;
 import org.springframework.rocket.support.PropertiesUtils;
@@ -38,7 +39,7 @@ public class DefaultRocketMessageListenerContainer extends AbstractRocketMessage
         Map<String, Object> consumerProperties = PropertiesUtils.asMap(this.containerProperties.getRocketConsumerProperties());
         configure(consumerProperties);
         Assert.state(this.consumerFactory != null, "No 'consumerFactory' set");
-        this.consumer = this.consumerFactory.create(this.getGroupId(), consumerProperties);
+        this.consumer = this.consumerFactory.create(consumerProperties);
         Assert.state(this.consumer != null, "Unable to create a consumer");
 
         if (this.consumer instanceof DefaultMQPushConsumer defaultMQPushConsumer
@@ -112,6 +113,6 @@ public class DefaultRocketMessageListenerContainer extends AbstractRocketMessage
 
 
     private void configure(Map<String, Object> consumerProperties) {
-        // consumer
+        consumerProperties.put(ClientProperties.GROUP_ID, this.getGroupId());
     }
 }
