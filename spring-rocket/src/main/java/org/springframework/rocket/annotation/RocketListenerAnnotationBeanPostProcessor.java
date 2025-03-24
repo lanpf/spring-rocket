@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 
@@ -64,9 +65,10 @@ public class RocketListenerAnnotationBeanPostProcessor extends AbstractRocketAnn
     private final Set<Class<?>> nonAnnotatedClasses = Collections.newSetFromMap(new ConcurrentHashMap<>(64));
     private final ListenerScope listenerScope = new ListenerScope();
 
+    private final RocketHandlerMethodFactoryAdapter messageHandlerMethodFactory = new RocketHandlerMethodFactoryAdapter();
     private final GenericListenerEndpointRegistrar registrar = new GenericListenerEndpointRegistrar();
     private final AtomicInteger counter = new AtomicInteger();
-    private final RocketHandlerMethodFactoryAdapter messageHandlerMethodFactory = new RocketHandlerMethodFactoryAdapter();
+    private final AtomicBoolean enhancerIsBuilt = new AtomicBoolean();
 
     @Setter
     private RocketListenerEndpointRegistry endpointRegistry;
@@ -450,7 +452,7 @@ public class RocketListenerAnnotationBeanPostProcessor extends AbstractRocketAnn
     }
 
     private void buildEnhancer() {
-        if (this.applicationContext != null) {
+        if (this.applicationContext != null && this.enhancerIsBuilt.compareAndSet(false, true)) {
             Map<String, AnnotationEnhancer> enhancersMap =
                     this.applicationContext.getBeansOfType(AnnotationEnhancer.class, false, false);
             if (!enhancersMap.isEmpty()) {
