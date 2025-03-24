@@ -331,7 +331,7 @@ public class RocketListenerAnnotationBeanPostProcessor extends AbstractRocketAnn
         return listeners;
     }
 
-    private RocketListener enhance(AnnotatedElement element, RocketListener ann) {
+    protected RocketListener enhance(AnnotatedElement element, RocketListener ann) {
         if (this.enhancer == null) {
             return ann;
         }
