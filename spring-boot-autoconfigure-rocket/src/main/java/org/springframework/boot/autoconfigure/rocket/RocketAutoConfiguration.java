@@ -13,7 +13,7 @@ import org.springframework.rocket.client.DefaultRocketPullConsumerFactory;
 import org.springframework.rocket.client.DefaultRocketPushConsumerFactory;
 import org.springframework.rocket.client.RocketProducerFactory;
 import org.springframework.rocket.client.RocketPushConsumerFactory;
-import org.springframework.rocket.config.RocketSupportBeanNames;
+import org.springframework.rocket.config.RocketListenerConfigUtils;
 import org.springframework.rocket.core.RocketTemplate;
 import org.springframework.rocket.support.converter.MessagingMessageConverter;
 
@@ -23,8 +23,8 @@ import org.springframework.rocket.support.converter.MessagingMessageConverter;
 @Import({ RocketAnnotationDrivenConfiguration.class })
 public class RocketAutoConfiguration {
 
-    @Bean(name = RocketSupportBeanNames.DEFAULT_ROCKET_TEMPLATE_BEAN_NAME)
-    @ConditionalOnMissingBean(name = RocketSupportBeanNames.DEFAULT_ROCKET_TEMPLATE_BEAN_NAME)
+    @Bean(name = RocketListenerConfigUtils.DEFAULT_ROCKET_TEMPLATE_BEAN_NAME)
+    @ConditionalOnMissingBean(name = RocketListenerConfigUtils.DEFAULT_ROCKET_TEMPLATE_BEAN_NAME)
     public RocketTemplate rocketTemplate(
             RocketProducerFactory producerFactory,
             ObjectProvider<MessagingMessageConverter> messageConverter,

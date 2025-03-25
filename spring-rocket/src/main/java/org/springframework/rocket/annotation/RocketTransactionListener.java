@@ -1,6 +1,6 @@
 package org.springframework.rocket.annotation;
 
-import org.springframework.rocket.config.RocketSupportBeanNames;
+import org.springframework.rocket.config.RocketListenerConfigUtils;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -23,6 +23,6 @@ public @interface RocketTransactionListener {
      * If not specified, the default rocket template is used.
      * @return the rocket template bean name.
      */
-    String rocketTemplate() default RocketSupportBeanNames.DEFAULT_ROCKET_TEMPLATE_BEAN_NAME;
+    String rocketTemplate() default RocketListenerConfigUtils.DEFAULT_ROCKET_TEMPLATE_BEAN_NAME;
 
 }

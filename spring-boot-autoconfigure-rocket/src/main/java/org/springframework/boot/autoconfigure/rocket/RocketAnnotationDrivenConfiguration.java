@@ -9,7 +9,7 @@ import org.springframework.rocket.annotation.EnableRocket;
 import org.springframework.rocket.annotation.RocketListenerAnnotationBeanPostProcessor;
 import org.springframework.rocket.client.RocketPushConsumerFactory;
 import org.springframework.rocket.config.DefaultRocketListenerContainerFactory;
-import org.springframework.rocket.config.RocketSupportBeanNames;
+import org.springframework.rocket.config.RocketListenerConfigUtils;
 import org.springframework.rocket.core.RocketTemplate;
 import org.springframework.rocket.support.converter.MessagingMessageConverter;
 
@@ -40,7 +40,7 @@ public class RocketAnnotationDrivenConfiguration {
 
     @Configuration(proxyBeanMethods = false)
     @EnableRocket
-    @ConditionalOnMissingBean(name = RocketSupportBeanNames.ROCKET_LISTENER_ANNOTATION_PROCESSOR_BEAN_NAME)
+    @ConditionalOnMissingBean(name = RocketListenerConfigUtils.ROCKET_LISTENER_ANNOTATION_PROCESSOR_BEAN_NAME)
     static class EnableRocketConfiguration {
     }
 }

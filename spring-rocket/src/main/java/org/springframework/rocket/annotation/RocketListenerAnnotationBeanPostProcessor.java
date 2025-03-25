@@ -32,7 +32,7 @@ import org.springframework.rocket.config.GenericListenerEndpointRegistrar;
 import org.springframework.rocket.config.MethodRocketListenerEndpoint;
 import org.springframework.rocket.config.RocketListenerContainerFactory;
 import org.springframework.rocket.config.RocketListenerEndpointRegistry;
-import org.springframework.rocket.config.RocketSupportBeanNames;
+import org.springframework.rocket.config.RocketListenerConfigUtils;
 import org.springframework.util.Assert;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
@@ -114,7 +114,7 @@ public class RocketListenerAnnotationBeanPostProcessor extends AbstractRocketAnn
                 Assert.state(this.beanFactory != null,
                         "BeanFactory must be set to find endpoint registry by bean name");
                 this.endpointRegistry = this.beanFactory.getBean(
-                        RocketSupportBeanNames.ROCKET_LISTENER_ENDPOINT_REGISTRY_BEAN_NAME,
+                        RocketListenerConfigUtils.ROCKET_LISTENER_ENDPOINT_REGISTRY_BEAN_NAME,
                         RocketListenerEndpointRegistry.class);
             }
             this.registrar.setEndpointRegistry(this.endpointRegistry);

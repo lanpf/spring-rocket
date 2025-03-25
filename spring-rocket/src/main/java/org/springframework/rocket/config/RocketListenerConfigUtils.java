@@ -1,6 +1,6 @@
 package org.springframework.rocket.config;
 
-public abstract class RocketSupportBeanNames {
+public abstract class RocketListenerConfigUtils {
 
     /**
      * The bean name of the internally managed Rocket listener annotation processor.
@@ -15,14 +15,14 @@ public abstract class RocketSupportBeanNames {
             "org.springframework.rocket.config.internalRocketListenerEndpointRegistry";
 
     /**
-     * The bean name of the default rocket template.
-     */
-    public static final String DEFAULT_ROCKET_TEMPLATE_BEAN_NAME = "rocketTemplate";
-
-    /**
      * The bean name of the internally managed Rocket transactional annotation processor.
      */
     public static final String ROCKET_TRANSACTION_LISTENER_ANNOTATION_PROCESSOR_BEAN_NAME =
             "org.springframework.rocket.annotation.internalRocketTransactionListenerAnnotationProcessor";
+
+    /**
+     * The bean name of the default rocket template.
+     */
+    public static final String DEFAULT_ROCKET_TEMPLATE_BEAN_NAME = "rocketTemplate";
 
 }

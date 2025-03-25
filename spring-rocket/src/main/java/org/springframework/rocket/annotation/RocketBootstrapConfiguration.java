@@ -5,27 +5,27 @@ import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.rocket.config.RocketListenerEndpointRegistry;
-import org.springframework.rocket.config.RocketSupportBeanNames;
+import org.springframework.rocket.config.RocketListenerConfigUtils;
 
 public class RocketBootstrapConfiguration implements ImportBeanDefinitionRegistrar {
 
     @Override
     public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
-        if (!registry.containsBeanDefinition(RocketSupportBeanNames.ROCKET_LISTENER_ANNOTATION_PROCESSOR_BEAN_NAME)) {
+        if (!registry.containsBeanDefinition(RocketListenerConfigUtils.ROCKET_LISTENER_ANNOTATION_PROCESSOR_BEAN_NAME)) {
             registry.registerBeanDefinition(
-                    RocketSupportBeanNames.ROCKET_LISTENER_ANNOTATION_PROCESSOR_BEAN_NAME,
+                    RocketListenerConfigUtils.ROCKET_LISTENER_ANNOTATION_PROCESSOR_BEAN_NAME,
                     new RootBeanDefinition(RocketListenerAnnotationBeanPostProcessor.class));
         }
 
-        if (!registry.containsBeanDefinition(RocketSupportBeanNames.ROCKET_LISTENER_ENDPOINT_REGISTRY_BEAN_NAME)) {
+        if (!registry.containsBeanDefinition(RocketListenerConfigUtils.ROCKET_LISTENER_ENDPOINT_REGISTRY_BEAN_NAME)) {
             registry.registerBeanDefinition(
-                    RocketSupportBeanNames.ROCKET_LISTENER_ENDPOINT_REGISTRY_BEAN_NAME,
+                    RocketListenerConfigUtils.ROCKET_LISTENER_ENDPOINT_REGISTRY_BEAN_NAME,
                     new RootBeanDefinition(RocketListenerEndpointRegistry.class));
         }
 
-        if (!registry.containsBeanDefinition(RocketSupportBeanNames.ROCKET_TRANSACTION_LISTENER_ANNOTATION_PROCESSOR_BEAN_NAME)) {
+        if (!registry.containsBeanDefinition(RocketListenerConfigUtils.ROCKET_TRANSACTION_LISTENER_ANNOTATION_PROCESSOR_BEAN_NAME)) {
             registry.registerBeanDefinition(
-                    RocketSupportBeanNames.ROCKET_TRANSACTION_LISTENER_ANNOTATION_PROCESSOR_BEAN_NAME,
+                    RocketListenerConfigUtils.ROCKET_TRANSACTION_LISTENER_ANNOTATION_PROCESSOR_BEAN_NAME,
                     new RootBeanDefinition(RocketTransactionListenerAnnotationBeanPostProcessor.class));
         }
     }
