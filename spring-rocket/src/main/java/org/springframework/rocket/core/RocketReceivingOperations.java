@@ -22,9 +22,9 @@ public interface RocketReceivingOperations {
 
 
     default <T> List<T> receiveAndConvert(String topic, Type payloadType) {
-        return receiveAndConvert(topic, payloadType, null);
+        return receiveAndConvert(topic,  null, payloadType);
     }
-    <T> List<T> receiveAndConvert(String topic, Type payloadType, Long timeoutMillis);
+    <T> List<T> receiveAndConvert(String topic, Long timeoutMillis, Type payloadType);
 
     default <T> void receiveAndConvertAsync(String topic, Type payloadType, BiConsumer<List<T>, Throwable> receiveConsumer) {
         receiveAndConvertAsync(topic, payloadType, null, receiveConsumer);

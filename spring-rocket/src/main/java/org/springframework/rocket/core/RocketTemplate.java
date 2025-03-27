@@ -152,11 +152,15 @@ public class RocketTemplate implements RocketOperations, RocketTransactionOperat
      * --------------------    sync send    --------------------
      */
     public SendResult send(TopicTag topicTag, Object payload) {
-        return send(topicTag, payload, null);
+        return send(topicTag, payload, (Long) null);
     }
 
     public SendResult send(TopicTag topicTag, Object payload, Long timeoutMillis) {
         return send(topicTag.topic(), payload, supplyHeaders(topicTag.tag()), timeoutMillis);
+    }
+
+    public SendResult send(TopicTag topicTag, Object payload, String shardingKey) {
+        return send(topicTag, payload, shardingKey, null);
     }
 
     public SendResult send(TopicTag topicTag, Object payload, String shardingKey, Delay delay) {
@@ -237,11 +241,15 @@ public class RocketTemplate implements RocketOperations, RocketTransactionOperat
      * --------------------    async send    --------------------
      */
     public void sendAsync(TopicTag topicTag, Object payload, BiConsumer<SendResult, Throwable> sendConsumer) {
-        sendAsync(topicTag, payload, null, sendConsumer);
+        sendAsync(topicTag, payload, (Long) null, sendConsumer);
     }
 
     public void sendAsync(TopicTag topicTag, Object payload, Long timeoutMillis, BiConsumer<SendResult, Throwable> sendConsumer) {
         sendAsync(topicTag.topic(), payload, supplyHeaders(topicTag.tag()), timeoutMillis, sendConsumer);
+    }
+
+    public void sendAsync(TopicTag topicTag, Object payload, String shardingKey, BiConsumer<SendResult, Throwable> sendConsumer) {
+        sendAsync(topicTag, payload, shardingKey, null, sendConsumer);
     }
 
     public void sendAsync(TopicTag topicTag, Object payload, String shardingKey, Delay delay, BiConsumer<SendResult, Throwable> sendConsumer) {
@@ -471,15 +479,15 @@ public class RocketTemplate implements RocketOperations, RocketTransactionOperat
     }
 
     @Override
-    public <T> List<T> receiveAndConvert(String topic, Type payloadType, Long timeoutMillis) {
-        return receiveAndConvert(new TopicTag(topic, null), payloadType, timeoutMillis);
+    public <T> List<T> receiveAndConvert(String topic, Long timeoutMillis, Type payloadType) {
+        return receiveAndConvert(new TopicTag(topic, null), timeoutMillis, payloadType);
     }
 
     public <T> List<T> receiveAndConvert(TopicTag topicTag, Type payloadType) {
-        return receiveAndConvert(topicTag, payloadType, null);
+        return receiveAndConvert(topicTag, null, payloadType);
     }
 
-    public <T> List<T> receiveAndConvert(TopicTag topicTag, Type payloadType, Long timeoutMillis) {
+    public <T> List<T> receiveAndConvert(TopicTag topicTag, Long timeoutMillis, Type payloadType) {
         List<MessageExt> rocketMessages = receive(topicTag, timeoutMillis);
         return convert(rocketMessages, payloadType);
     }
@@ -526,42 +534,46 @@ public class RocketTemplate implements RocketOperations, RocketTransactionOperat
      * --------------------    send and receive(request/reply)    --------------------
      */
     public <T> T sendAndReceive(TopicTag topicTag, Object payload, Type replyPayloadType) {
-        return sendAndReceive(topicTag, payload, replyPayloadType, null);
+        return sendAndReceive(topicTag, payload, (Long) null, replyPayloadType);
     }
 
-    public <T> T sendAndReceive(TopicTag topicTag, Object payload, Type replyPayloadType, Long timeoutMillis) {
-        return sendAndReceive(topicTag.topic(), payload, supplyHeaders(topicTag.tag()), replyPayloadType, timeoutMillis);
+    public <T> T sendAndReceive(TopicTag topicTag, Object payload, Long timeoutMillis, Type replyPayloadType) {
+        return sendAndReceive(topicTag.topic(), payload, supplyHeaders(topicTag.tag()), timeoutMillis, replyPayloadType);
+    }
+
+    public <T> T sendAndReceive(TopicTag topicTag, Object payload, String shardingKey, Type replyPayloadType) {
+        return sendAndReceive(topicTag, payload, shardingKey, null, replyPayloadType);
     }
 
     public <T> T sendAndReceive(TopicTag topicTag, Object payload, String shardingKey, Delay delay, Type replyPayloadType) {
-        return sendAndReceive(topicTag, payload, shardingKey, delay, replyPayloadType, null);
+        return sendAndReceive(topicTag, payload, shardingKey, delay, null, replyPayloadType);
     }
 
-    public <T> T sendAndReceive(TopicTag topicTag, Object payload, String shardingKey, Delay delay, Type replyPayloadType, Long timeoutMillis) {
-        return sendAndReceive(topicTag.topic(), payload, supplyHeaders(topicTag.tag(), shardingKey, delay), replyPayloadType, timeoutMillis);
+    public <T> T sendAndReceive(TopicTag topicTag, Object payload, String shardingKey, Delay delay, Long timeoutMillis, Type replyPayloadType) {
+        return sendAndReceive(topicTag.topic(), payload, supplyHeaders(topicTag.tag(), shardingKey, delay), timeoutMillis, replyPayloadType);
     }
 
     public <T> T sendAndReceive(String topic, Object payload, Type replyPayloadType) {
-        return sendAndReceive(topic, payload, replyPayloadType, null);
+        return sendAndReceive(topic, payload, (Long) null, replyPayloadType);
     }
 
-    public <T> T sendAndReceive(String topic, Object payload, Type replyPayloadType, Long timeoutMillis) {
-        return sendAndReceive(topic, payload, null, replyPayloadType, timeoutMillis);
+    public <T> T sendAndReceive(String topic, Object payload, Long timeoutMillis, Type replyPayloadType) {
+        return sendAndReceive(topic, payload, null, timeoutMillis, replyPayloadType);
     }
 
     public <T> T sendAndReceive(String topic, Object payload, Supplier<Map<String, Object>> headerSupplier, Type replyPayloadType) {
-        return sendAndReceive(topic, payload, headerSupplier, replyPayloadType, null);
+        return sendAndReceive(topic, payload, headerSupplier, null, replyPayloadType);
     }
 
-    public <T> T sendAndReceive(String topic, Object payload, Supplier<Map<String, Object>> headerSupplier, Type replyPayloadType, Long timeoutMillis) {
+    public <T> T sendAndReceive(String topic, Object payload, Supplier<Map<String, Object>> headerSupplier, Long timeoutMillis, Type replyPayloadType) {
         Message<?> message = buildMessage(payload, headerSupplier);
-        return sendAndReceive(topic, message, replyPayloadType, timeoutMillis);
+        return sendAndReceive(topic, message, timeoutMillis, replyPayloadType);
     }
 
     @SuppressWarnings("unchecked")
     @SneakyThrows
     @Override
-    public <T> T sendAndReceive(String topic, Message<?> message, Type replyPayloadType, Long timeoutMillis) {
+    public <T> T sendAndReceive(String topic, Message<?> message, Long timeoutMillis, Type replyPayloadType) {
         Message<?> converted = this.messageConverter.convert(message.getPayload(), message.getHeaders());
         org.apache.rocketmq.common.message.Message requestMessage = this.messageConverter.fromMessage(converted, topic);
 
@@ -579,7 +591,11 @@ public class RocketTemplate implements RocketOperations, RocketTransactionOperat
      * --------------------    async send and receive(request/reply)    --------------------
      */
     public <T> void sendAndReceiveAsync(TopicTag topicTag, Object payload, Type replyPayloadType, BiConsumer<T, Throwable> replyConsumer) {
-        sendAndReceiveAsync(topicTag, payload, null, replyPayloadType, replyConsumer);
+        sendAndReceiveAsync(topicTag, payload, (Long) null, replyPayloadType, replyConsumer);
+    }
+
+    public <T> void sendAndReceiveAsync(TopicTag topicTag, Object payload, Long timeoutMillis, Type replyPayloadType, BiConsumer<T, Throwable> replyConsumer) {
+        sendAndReceiveAsync(topicTag.tag(), payload, supplyHeaders(topicTag.tag()), timeoutMillis, replyPayloadType, replyConsumer);
     }
 
     public <T> void sendAndReceiveAsync(TopicTag topicTag, Object payload, String shardingKey, Type replyPayloadType, BiConsumer<T, Throwable> replyConsumer) {
@@ -587,34 +603,34 @@ public class RocketTemplate implements RocketOperations, RocketTransactionOperat
     }
 
     public <T> void sendAndReceiveAsync(TopicTag topicTag, Object payload, String shardingKey, Delay delay, Type replyPayloadType, BiConsumer<T, Throwable> replyConsumer) {
-        sendAndReceiveAsync(topicTag, payload, shardingKey, delay, replyPayloadType, null, replyConsumer);
+        sendAndReceiveAsync(topicTag, payload, shardingKey, delay, null, replyPayloadType, replyConsumer);
     }
 
-    public <T> void sendAndReceiveAsync(TopicTag topicTag, Object payload, String shardingKey, Delay delay, Type replyPayloadType, Long timeoutMillis, BiConsumer<T, Throwable> replyConsumer) {
-        sendAndReceiveAsync(topicTag.topic(), payload, supplyHeaders(topicTag.tag(), shardingKey, delay), replyPayloadType, timeoutMillis, replyConsumer);
+    public <T> void sendAndReceiveAsync(TopicTag topicTag, Object payload, String shardingKey, Delay delay, Long timeoutMillis, Type replyPayloadType, BiConsumer<T, Throwable> replyConsumer) {
+        sendAndReceiveAsync(topicTag.topic(), payload, supplyHeaders(topicTag.tag(), shardingKey, delay), timeoutMillis, replyPayloadType, replyConsumer);
     }
 
     public <T> void sendAndReceiveAsync(String topic, Object payload, Type replyPayloadType, BiConsumer<T, Throwable> replyConsumer) {
-        sendAndReceiveAsync(topic, payload, replyPayloadType, null, replyConsumer);
+        sendAndReceiveAsync(topic, payload, (Long) null, replyPayloadType, replyConsumer);
     }
 
-    public <T> void sendAndReceiveAsync(String topic, Object payload, Type replyPayloadType, Long timeoutMillis, BiConsumer<T, Throwable> replyConsumer) {
-        sendAndReceiveAsync(topic, payload, null, replyPayloadType, timeoutMillis, replyConsumer);
+    public <T> void sendAndReceiveAsync(String topic, Object payload, Long timeoutMillis, Type replyPayloadType, BiConsumer<T, Throwable> replyConsumer) {
+        sendAndReceiveAsync(topic, payload, null, timeoutMillis, replyPayloadType, replyConsumer);
     }
 
     public <T> void sendAndReceiveAsync(String topic, Object payload, Supplier<Map<String, Object>> headerSupplier, Type replyPayloadType, BiConsumer<T, Throwable> replyConsumer) {
-        sendAndReceiveAsync(topic, payload, headerSupplier, replyPayloadType, null, replyConsumer);
+        sendAndReceiveAsync(topic, payload, headerSupplier, null, replyPayloadType, replyConsumer);
     }
 
-    public <T> void sendAndReceiveAsync(String topic, Object payload, Supplier<Map<String, Object>> headerSupplier, Type replyPayloadType, Long timeoutMillis, BiConsumer<T, Throwable> replyConsumer) {
+    public <T> void sendAndReceiveAsync(String topic, Object payload, Supplier<Map<String, Object>> headerSupplier, Long timeoutMillis, Type replyPayloadType, BiConsumer<T, Throwable> replyConsumer) {
         Message<?> message = buildMessage(payload, headerSupplier);
-        sendAndReceiveAsync(topic, message, replyPayloadType, timeoutMillis, replyConsumer);
+        sendAndReceiveAsync(topic, message, timeoutMillis, replyPayloadType, replyConsumer);
     }
 
     @SuppressWarnings("unchecked")
     @SneakyThrows
     @Override
-    public <T> void sendAndReceiveAsync(String topic, Message<?> message, Type replyPayloadType, Long timeoutMillis, BiConsumer<T, Throwable> replyConsumer) {
+    public <T> void sendAndReceiveAsync(String topic, Message<?> message, Long timeoutMillis, Type replyPayloadType, BiConsumer<T, Throwable> replyConsumer) {
         Message<?> converted = this.messageConverter.convert(message.getPayload(), message.getHeaders());
         org.apache.rocketmq.common.message.Message requestMessage = this.messageConverter.fromMessage(converted, topic);
 

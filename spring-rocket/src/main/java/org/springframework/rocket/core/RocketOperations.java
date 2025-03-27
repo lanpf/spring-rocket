@@ -58,16 +58,16 @@ public interface RocketOperations {
      * send and receive(request/reply) spring message
      */
     default <T> T sendAndReceive(String topic, Message<?> message, Type replyPayloadType) {
-        return sendAndReceive(topic, message, replyPayloadType, null);
+        return sendAndReceive(topic, message, null, replyPayloadType);
     }
-    <T> T sendAndReceive(String topic, Message<?> message, Type replyPayloadType, Long timeoutMillis);
+    <T> T sendAndReceive(String topic, Message<?> message, Long timeoutMillis, Type replyPayloadType);
 
 
     /**
      * async send and receive(request/reply) spring message
      */
     default <T> void sendAndReceiveAsync(String topic, Message<?> message, Type replyPayloadType, BiConsumer<T, Throwable> replyConsumer) {
-        sendAndReceiveAsync(topic, message, replyPayloadType, null, replyConsumer);
+        sendAndReceiveAsync(topic, message, null, replyPayloadType, replyConsumer);
     }
-    <T> void sendAndReceiveAsync(String topic, Message<?> message, Type replyPayloadType, Long timeoutMillis, BiConsumer<T, Throwable> replyConsumer);
+    <T> void sendAndReceiveAsync(String topic, Message<?> message, Long timeoutMillis, Type replyPayloadType, BiConsumer<T, Throwable> replyConsumer);
 }
