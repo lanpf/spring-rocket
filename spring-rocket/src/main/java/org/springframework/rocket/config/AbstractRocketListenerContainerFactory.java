@@ -90,9 +90,8 @@ public abstract class AbstractRocketListenerContainerFactory<C extends AbstractR
                 .acceptIfNotNull(this.phase, instance::setPhase)
                 .acceptIfNotNull(this.applicationContext, instance::setApplicationContext)
                 .acceptIfNotNull(this.applicationEventPublisher, instance::setApplicationEventPublisher)
-                .acceptIfHasText(endpoint.getGroupId(), instance.getContainerProperties()::setGroupId)
-                .acceptIfNotNull(endpoint.getConsumerProperties(),
-                        instance.getContainerProperties()::setRocketConsumerProperties);
+                .acceptIfHasText(endpoint.getGroupId(), instanceProperties::setGroupId)
+                .acceptIfNotNull(endpoint.getConsumerProperties(), instanceProperties::setRocketConsumerProperties);
         // Update container properties if there are relevant direct consumer properties
         instanceProperties.updateContainerProperties();
     }
